@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Philosophische Denkschulen – Abhängigkeitsgraph</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Josefin+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0c0c0e;
+    --surface: #13131a;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8e2d6;
+    --muted: #6b6560;
+    --font-display: 'Cormorant Garamond', serif;
+    --font-ui: 'Josefin Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ── */
+  header {
+    text-align: center;
+    padding: 3rem 2rem 1.5rem;
+    position: relative;
+  }
+  header::after {
+    content: '';
+    display: block;
+    width: 60px; height: 1px;
+    background: linear-gradient(90deg, transparent, #b8a882, transparent);
+    margin: 1.2rem auto 0;
+  }
+  .eyebrow {
+    font-family: var(--font-ui);
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    color: #f0e8d6;
+    line-height: 1.2;
+  }
+  .subtitle {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-style: italic;
+    color: var(--muted);
+    margin-top: 0.4rem;
+  }
+
+  /* ── Legend ── */
+  #legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.2rem;
+    padding: 1rem 2rem 0.5rem;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-ui);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+  .legend-line {
+    width: 32px; height: 2px;
+    border-radius: 1px;
+  }
+  .legend-line.influences { background: #b8a882; }
+  .legend-line.continues  { background: #6a9f8a; }
+  .legend-line.criticizes { background: #c46b5a; }
+  .legend-line.synthesizes{ background: #7a8fc4; }
+  .legend-line.dashed {
+    background: none;
+    border-top: 2px dashed #6a9f8a;
+  }
+
+  /* ── Graph container ── */
+  #graph-wrap {
+    width: 100%;
+    overflow-x: auto;
+    padding: 1rem 0 2rem;
+  }
+  svg { display: block; }
+
+  /* ── SVG elements ── */
+  .swim-lane-bg { opacity: 1; }
+  .swim-label {
+    font-family: var(--font-ui);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    fill-opacity: 0.35;
+  }
+  .era-divider { stroke-dasharray: 4 6; }
+
+  .node-group { cursor: pointer; }
+  .node-rect {
+    rx: 4; ry: 4;
+    stroke-width: 1.5;
+    transition: filter 0.2s;
+  }
+  .node-group:hover .node-rect { filter: brightness(1.4); }
+  .node-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 12px;
+    fill: #f0e8d6;
+    pointer-events: none;
+  }
+  .node-era-tag {
+    font-family: var(--font-ui);
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    fill-opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .edge-path {
+    fill: none;
+    stroke-width: 1.5;
+    opacity: 0.45;
+    transition: opacity 0.2s, stroke-width 0.2s;
+  }
+  .edge-path.highlighted { opacity: 1; stroke-width: 2.5; }
+  .edge-path.dimmed { opacity: 0.08; }
+
+  /* ── Detail Panel ── */
+  #panel {
+    position: fixed;
+    top: 0; right: -480px;
+    width: min(480px, 100vw);
+    height: 100vh;
+    background: #111118;
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    transition: right 0.35s cubic-bezier(0.16,1,0.3,1);
+    z-index: 100;
+    padding: 2rem 1.75rem 3rem;
+  }
+  #panel.open { right: 0; }
+  #panel-close {
+    position: absolute;
+    top: 1rem; right: 1rem;
+    background: none; border: none;
+    color: var(--muted); cursor: pointer;
+    font-size: 1.4rem; line-height: 1;
+    font-family: var(--font-ui);
+    padding: 0.25rem 0.5rem;
+    transition: color 0.2s;
+  }
+  #panel-close:hover { color: var(--text); }
+  .panel-era {
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+  .panel-title {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: 0.03em;
+    color: #f0e8d6;
+    line-height: 1.2;
+    margin-bottom: 0.2rem;
+  }
+  .panel-divider {
+    height: 1px;
+    margin: 1rem 0;
+    background: linear-gradient(90deg, currentColor, transparent);
+    opacity: 0.3;
+  }
+  .section-label {
+    font-family: var(--font-ui);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+  .panel-core {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    line-height: 1.75;
+    color: #c8c0b4;
+    margin-bottom: 1.5rem;
+  }
+  .panel-detail {
+    font-family: var(--font-display);
+    font-size: 0.98rem;
+    line-height: 1.8;
+    color: #9a9088;
+    margin-bottom: 1.5rem;
+  }
+  .reps-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1.5rem;
+  }
+  .rep-chip {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    padding: 0.2rem 0.7rem;
+    border-radius: 2px;
+    border: 1px solid;
+    opacity: 0.75;
+  }
+  .connections-list { list-style: none; }
+  .conn-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: #9a9088;
+  }
+  .conn-item:last-child { border-bottom: none; }
+  .conn-arrow {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-family: var(--font-ui);
+    padding: 0.15rem 0.5rem;
+    border-radius: 2px;
+    margin-top: 0.1rem;
+    opacity: 0.85;
+  }
+  .conn-arrow.influences  { background: #b8a88225; color: #b8a882; border: 1px solid #b8a88260; }
+  .conn-arrow.continues   { background: #6a9f8a25; color: #6a9f8a; border: 1px solid #6a9f8a60; }
+  .conn-arrow.criticizes  { background: #c46b5a25; color: #c46b5a; border: 1px solid #c46b5a60; }
+  .conn-arrow.synthesizes { background: #7a8fc425; color: #7a8fc4; border: 1px solid #7a8fc460; }
+
+  /* ── Tooltip ── */
+  #tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: #1a1a24;
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.9rem;
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    color: var(--muted);
+    border-radius: 3px;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 200;
+    max-width: 220px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">Ideengeschichte · Westliche Philosophie</p>
+  <h1>Philosophische Denkschulen</h1>
+  <p class="subtitle">Abhängigkeiten, Einflüsse und Brüche von der Antike bis zur Gegenwart</p>
+</header>
+
+<div id="legend">
+  <div class="legend-item"><div class="legend-line influences"></div> Beeinflusst</div>
+  <div class="legend-item"><div class="legend-line continues dashed"></div> Setzt fort</div>
+  <div class="legend-item"><div class="legend-line criticizes"></div> Kritisiert / Bricht mit</div>
+  <div class="legend-item"><div class="legend-line synthesizes"></div> Synthetisiert</div>
+</div>
+
+<div id="graph-wrap"><svg id="main-svg"></svg></div>
+<div id="panel">
+  <button id="panel-close">✕</button>
+  <div id="panel-content"></div>
+</div>
+<div id="tooltip"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════
+const ERA_COLORS = {
+  "Antike":          "#b8a040",
+  "Mittelalter":     "#9b72b0",
+  "Neuzeit":         "#4e8fc4",
+  "19. Jahrhundert": "#c45a4a",
+  "20. Jahrhundert": "#4aaa80",
+};
+
+const nodes = [
+  // ── Antike ──
+  { id: "platonismus", label: "Platonismus", era: "Antike",
+    core: "Die wahre Realität besteht aus ewigen, unveränderlichen Ideen (Formen). Die Sinneswelt ist nur ein schwacher Abglanz dieser idealen Welt. Erkenntnis bedeutet, sich von Sinnesdaten zu lösen und durch rationale Schau zur Ideenwelt aufzusteigen.",
+    detail: "Platon entwickelte seine Ideenlehre im Kontext der Frage: Was macht einzelne schöne Dinge schön? Seine Antwort: die Teilhabe an der Idee des Schönen selbst. Das Höhlengleichnis illustriert den philosophischen Aufstieg vom Schatten zur Sonne. Der Platonismus prägte das christliche Denken tiefgreifend, insbesondere durch die Gleichsetzung von Gott mit dem höchsten Guten.",
+    reps: ["Platon (428–348 v. Chr.)", "Plotin (205–270 n. Chr.)", "Proklos (412–485 n. Chr.)"] },
+
+  { id: "aristotelismus", label: "Aristotelismus", era: "Antike",
+    core: "Gegen Platons Ideenwelt setzt Aristoteles: Die Form ist nicht getrennt von der Materie, sondern in den Dingen selbst. Erkenntnis beginnt mit Sinneswahrnehmung. Alles hat eine innere Zweckursache (telos).",
+    detail: "Aristoteles begründete Logik, Biologie, Physik, Metaphysik und Ethik als eigenständige Disziplinen. Seine Tugendethik (Nikomachische Ethik) fragt nach dem gelingenden Leben (eudaimonia). Sein Gottesbegriff – der 'unbewegt Beweger' – wurde für die mittelalterliche Theologie zentral. Im islamischen Mittelalter wurde Aristoteles über Averroes nach Europa zurückvermittelt.",
+    reps: ["Aristoteles (384–322 v. Chr.)", "Theophrast (371–287 v. Chr.)", "Alexander von Aphrodisias (ca. 200 n. Chr.)"] },
+
+  { id: "stoizismus", label: "Stoizismus", era: "Antike",
+    core: "Tugend ist das einzige Gut; alles andere (Gesundheit, Reichtum, Tod) ist 'gleichgültig' (adiaphoron). Der Weise lebt gemäß der universellen Vernunft (logos) und bewahrt innere Freiheit gegenüber äußerem Schicksal.",
+    detail: "Die Stoa lehrte eine pantheistische Weltseele aus Logos und Materie. In der Spätantike entfaltete der Stoizismus eine breite Wirkung auf Ethik und politisches Denken. Seneca, Epiktet und Marc Aurel machten ihn zur populärsten Philosophie der römischen Kaiserzeit. Elemente des stoischen Naturrechts flossen in das christliche Denken und später in die Aufklärung ein.",
+    reps: ["Zenon von Kition (334–262 v. Chr.)", "Epiktet (50–135 n. Chr.)", "Marc Aurel (121–180 n. Chr.)", "Seneca (4 v. Chr.–65 n. Chr.)"] },
+
+  { id: "epikureismus", label: "Epikureismus", era: "Antike",
+    core: "Das höchste Gut ist Glück als Seelenfrieden (ataraxia) und Schmerzlosigkeit (aponia). Nicht Genusssucht, sondern die Befreiung von Angst – besonders Todesangst und Götterfurcht – führt zur Glückseligkeit.",
+    detail: "Epikur lehrte eine atomistische Physik (nach Demokrit), die keinen Raum für göttliches Eingreifen oder ein Leben nach dem Tod ließ – damit wollte er Todesangst rational auflösen. Das Ideal war ein Leben im kleinen Freundeskreis ('Garten'). Der Epikureismus blieb im Mittelalter weitgehend verdrängt und erlebte in der Neuzeit durch Gassendi und die Aufklärung eine Wiedergeburt.",
+    reps: ["Epikur (341–270 v. Chr.)", "Lukrez (99–55 v. Chr.)", "Philodem von Gadara (110–40 v. Chr.)"] },
+
+  { id: "skeptizismus", label: "Skeptizismus", era: "Antike",
+    core: "Da kein sicheres Wissen möglich ist, soll man das Urteil suspendieren (epoché). Aus dieser Urteilsenthaltung folgt paradoxerweise Seelenfrieden – denn wer nicht urteilt, wird nicht enttäuscht.",
+    detail: "Der pyrrhonische Skeptizismus unterscheidet sich vom akademischen Skeptizismus der Platonischen Akademie. Pyrrhon selbst schrieb nichts; unser Wissen über ihn stammt von Timon und Sextus Empiricus. Die Skepsis wurde in der Neuzeit durch Montaigne und Descartes ('methodischer Zweifel') neu belebt und beeinflusste Hume fundamental.",
+    reps: ["Pyrrhon (360–270 v. Chr.)", "Timon von Phleius (320–230 v. Chr.)", "Sextus Empiricus (160–210 n. Chr.)"] },
+
+  // ── Mittelalter ──
+  { id: "scholastik", label: "Scholastik", era: "Mittelalter",
+    core: "Synthese von christlichem Offenbarungsglauben und antiker (v. a. aristotelischer) Philosophie durch strenge rationale Methodik. Glauben und Vernunft sollen nicht im Widerspruch stehen, sondern sich gegenseitig stützen.",
+    detail: "Die Scholastik entwickelte die Universitätsdisputation als Methode. Thomas von Aquin synthetisierte Aristoteles mit dem christlichen Gottesbegriff: Gott als reiner Akt (actus purus), der nur durch Analogie erkannt werden kann. Die fünf Gottesbeweise sind exemplarisch für das scholastische Programm. Die Scholastik schuf das Begriffsinventar, an dem sich spätere Denker – oft kritisch – abarbeiteten.",
+    reps: ["Anselm von Canterbury (1033–1109)", "Thomas von Aquin (1225–1274)", "Duns Scotus (1266–1308)", "Albertus Magnus (1200–1280)"] },
+
+  { id: "nominalismus", label: "Nominalismus", era: "Mittelalter",
+    core: "Universalien wie 'Mensch' oder 'Gerechtigkeit' sind nur Namen (nomina), keine realen Entitäten. Nur Einzeldinge existieren wirklich. Ockhams Rasiermesser: Entitäten sollen nicht über das Notwendige hinaus vermehrt werden.",
+    detail: "Der Nominalismus brach mit dem scholastischen Realismus und bereitete den Empirismus vor. Wilhelm von Ockham trennte Glauben und Vernunft scharf: Theologie ist Glaubenssache, nicht Wissenschaft. Diese Trennung ist ein Vorläufer der neuzeitlichen Säkularisierung. Der Nominalismus untergrub den scholastischen Beweisanspruch in der Gotteslehre und förderte empirische Einzelbeobachtung.",
+    reps: ["Roscellin von Compiègne (ca. 1050–1125)", "Wilhelm von Ockham (1287–1347)", "Jean Buridan (1301–1360)"] },
+
+  { id: "mystik", label: "Mystik", era: "Mittelalter",
+    core: "Unmittelbare Gotteserfahrung durch innere Versenkung, jenseits aller begrifflichen Vermittlung. Die Seele kann mit Gott in direkten Kontakt treten – eine Herausforderung für die kirchliche Hierarchie.",
+    detail: "Meister Eckhart lehrte die 'Abgeschiedenheit' als Weg zur Gottesgeburt in der Seele. Seine Spekulationen über die Gottheit jenseits des personalen Gottes bewegten sich an der Grenze der Orthodoxie. Die deutsche Mystik (Tauler, Seuse) beeinflusste Luther und die protestantische Innerlichkeit. Elemente der Mystik finden sich in der Lebensphilosophie und im Existentialismus wieder.",
+    reps: ["Meister Eckhart (1260–1328)", "Johannes Tauler (1300–1361)", "Hildegard von Bingen (1098–1179)", "Nikolaus von Kues (1401–1464)"] },
+
+  // ── Neuzeit ──
+  { id: "rationalismus", label: "Rationalismus", era: "Neuzeit",
+    core: "Die Vernunft ist die einzig zuverlässige Erkenntnisquelle. Angeborene Ideen (ideae innatae) ermöglichen sichere Erkenntnis unabhängig von Sinneserfahrung. Die mathematisch-deduktive Methode ist das Ideal aller Wissenschaft.",
+    detail: "Descartes' 'cogito ergo sum' sollte eine neue, zweifelsfreie Grundlage für Erkenntnis schaffen. Spinoza radikalisierte Descartes zu einem monistischen Pantheismus (Gott = Natur). Leibniz entwickelte die Monadenlehre und eine prästabilisierte Harmonie. Der Rationalismus provozierte direkt den empiristischen Gegenentwurf und wurde von Kant in der Kritischen Philosophie aufgehoben.",
+    reps: ["René Descartes (1596–1650)", "Baruch Spinoza (1632–1677)", "Gottfried W. Leibniz (1646–1716)", "Nicolas Malebranche (1638–1715)"] },
+
+  { id: "empirismus", label: "Empirismus", era: "Neuzeit",
+    core: "Der Geist ist bei der Geburt eine leere Tafel (tabula rasa). Alles Wissen stammt aus Sinneserfahrung. Keine angeborenen Ideen; Erkenntnis ist immer auf Erfahrung angewiesen und damit grundsätzlich begrenzt.",
+    detail: "Locke entwickelte eine Erkenntnistheorie, die den Absolutheitsanspruch der Vernunft beschnitt und politisch für Toleranz und Gewaltenteilung eintrat. Berkeley zog den radikalen Schluss: Wenn alle Erkenntnis aus Wahrnehmung kommt, existiert die Außenwelt nur als Wahrnehmung ('esse est percipi'). Hume zerstörte den Kausalitätsbegriff: Wir erleben nur Abfolge, nie Notwendigkeit – was Kant aus dem 'dogmatischen Schlummer' weckte.",
+    reps: ["Francis Bacon (1561–1626)", "John Locke (1632–1704)", "George Berkeley (1685–1753)", "David Hume (1711–1776)"] },
+
+  { id: "aufklaerung", label: "Aufklärung", era: "Neuzeit",
+    core: "'Sapere aude!' – Habe Mut, dich deines eigenen Verstandes zu bedienen (Kant). Befreiung aus selbstverschuldeter Unmündigkeit durch kritische Vernunft, Überwindung von Tradition, Aberglauben und kirchlicher Autorität.",
+    detail: "Die Aufklärung war weniger eine einheitliche Schule als eine gesamteuropäische Bewegung. In Frankreich radikaler und atheistischer (Voltaire, Diderot, Enzyklopädie), in Deutschland gemäßigter und stärker an Wissenschaft orientiert. Die politischen Konsequenzen waren enorm: Menschenrechte, Volkssouveränität, Trennung von Kirche und Staat. Die Kritische Theorie des 20. Jh. fragte, warum die Aufklärung in Barbarei umschlagen konnte.",
+    reps: ["Voltaire (1694–1778)", "Jean-Jacques Rousseau (1712–1778)", "Denis Diderot (1713–1784)", "Immanuel Kant (1724–1804)", "Moses Mendelssohn (1729–1786)"] },
+
+  { id: "idealismus", label: "Deutscher Idealismus", era: "Neuzeit",
+    core: "Als Antwort auf Kant: Das Bewusstsein konstituiert die Wirklichkeit. Der Geist (Vernunft, Ich, Absolutes) ist das letzte Prinzip der Wirklichkeit. Das Denken und das Sein sind letztlich identisch.",
+    detail: "Fichte radikalisierte Kants Transzendentalphilosophie: Das Ich setzt sich selbst und das Nicht-Ich. Schelling versuchte Natur- und Geistphilosophie zu vereinen. Hegel entwickelte die Dialektik (These – Antithese – Synthese) als Bewegungsgesetz des Geistes durch die Geschichte. Marx 'stellte Hegel vom Kopf auf die Füße': Nicht der Geist, sondern die materielle Produktion ist der Motor der Geschichte.",
+    reps: ["Immanuel Kant (1724–1804)", "J. G. Fichte (1762–1814)", "F. W. J. Schelling (1775–1854)", "G. W. F. Hegel (1770–1831)"] },
+
+  // ── 19. Jahrhundert ──
+  { id: "marxismus", label: "Marxismus", era: "19. Jahrhundert",
+    core: "Dialektischer Materialismus: Die Geschichte ist ein Klassenkampf, angetrieben durch materielle Produktionsverhältnisse, nicht durch Ideen. 'Die Philosophen haben die Welt nur interpretiert; es kommt darauf an, sie zu verändern.'",
+    detail: "Marx übernahm Hegels Dialektik, ersetzte aber den Geist durch die Materie (historischer Materialismus). Das Kapital analysiert die Warenform, Mehrwert und die Entfremdung des Arbeiters. Engels systematisierte den Marxismus. Im 20. Jh. entfaltete er sich in viele Richtungen: Leninismus, Maoismus, Frankfurter Schule, westlicher Marxismus (Gramsci). Die Kritische Theorie versuchte, Marxismus und Psychoanalyse zu verbinden.",
+    reps: ["Karl Marx (1818–1883)", "Friedrich Engels (1820–1895)", "Rosa Luxemburg (1871–1919)", "Antonio Gramsci (1891–1937)"] },
+
+  { id: "positivismus", label: "Positivismus", era: "19. Jahrhundert",
+    core: "Nur empirisch überprüfbare Aussagen haben wissenschaftlichen Wert. Metaphysik und Spekulation sind bedeutungslos. Die Wissenschaften sollen nach dem Vorbild der Naturwissenschaften vereinheitlicht werden.",
+    detail: "Comte teilte die Menschheitsgeschichte in drei Stadien: theologisch, metaphysisch, positiv (wissenschaftlich). Im 20. Jh. radikalisierte der Wiener Kreis (Carnap, Schlick) den Positivismus zum Logischen Positivismus: Nur logisch-analytische oder empirisch verifizierbare Sätze sind sinnvoll. Popper kritisierte das Verifikationsprinzip und ersetzte es durch Falsifizierbarkeit als Abgrenzungskriterium.",
+    reps: ["Auguste Comte (1798–1857)", "John Stuart Mill (1806–1873)", "Ernst Mach (1838–1916)"] },
+
+  { id: "utilitarismus", label: "Utilitarismus", era: "19. Jahrhundert",
+    core: "Das moralisch Richtige ist die Handlung, die den größten Nutzen (Glück/Lust) für die größte Zahl von Menschen erzeugt. Moralische Urteile sind empirisch kalkulierbar.",
+    detail: "Bentham entwickelte das 'felicific calculus' – eine Rechenmaschine für Lust und Schmerz. Mill verfeinerte den Utilitarismus: Nicht alle Lüste sind gleich; 'besser unzufrieden ein Sokrates als zufrieden ein Narr'. Der Utilitarismus beeinflusste Sozialreform, Tierschutz (Singer) und ist heute Standardposition in der angewandten Ethik. Kritik: Er übersieht individuelle Rechte und erlaubt prinzipiell, Einzelne für das Gesamtwohl zu opfern.",
+    reps: ["Jeremy Bentham (1748–1832)", "John Stuart Mill (1806–1873)", "Henry Sidgwick (1838–1900)", "Peter Singer (*1946)"] },
+
+  { id: "lebensphilosophie", label: "Lebensphilosophie", era: "19. Jahrhundert",
+    core: "Kritik am abstrakten Rationalismus: Das irrationale, strömende Leben lässt sich nicht in Begriffe pressen. Wille, Intuition, Geschichte und Kultur als Grundkategorien gegen das mechanistische Weltbild.",
+    detail: "Schopenhauer sah hinter allen Erscheinungen einen blinden Willen zum Leben, dessen Verneinung (durch Askese und Kunst) die einzige Erlösung bietet – stark beeinflusst von indischer Philosophie. Nietzsche zog radikalere Konsequenzen: Wille zur Macht, Umwertung aller Werte, Übermensch, ewige Wiederkunft. Dilthey begründete die Geisteswissenschaften als eigenständige Methode: Verstehen statt Erklären. Bergson betonte den élan vital und die intuitive Schau.",
+    reps: ["Arthur Schopenhauer (1788–1860)", "Friedrich Nietzsche (1844–1900)", "Wilhelm Dilthey (1833–1911)", "Henri Bergson (1859–1941)"] },
+
+  { id: "pragmatismus", label: "Pragmatismus", era: "19. Jahrhundert",
+    core: "Ideen sind Werkzeuge, keine Abbilder der Wirklichkeit. Wahr ist, was sich als nützlich erweist. Philosophie soll praktische Probleme lösen, nicht metaphysische Pseudoprobleme wälzen.",
+    detail: "Peirce entwickelte den Pragmatismus als Methode zur Bedeutungsklärung. James radikalisierte ihn: Wahrheit ist relativ und plural – was für mich funktioniert, ist für mich wahr. Dewey betonte den Demokratie- und Bildungsgedanken. Neopragmatisten des 20. Jh. (Rorty, Putnam) verbanden Pragmatismus mit analytischer Philosophie und stellten die Sprachanalyse ins Zentrum.",
+    reps: ["Charles S. Peirce (1839–1914)", "William James (1842–1910)", "John Dewey (1859–1952)", "Richard Rorty (1931–2007)"] },
+
+  // ── 20. Jahrhundert ──
+  { id: "phaenomenologie", label: "Phänomenologie", era: "20. Jahrhundert",
+    core: "'Zurück zu den Dingen selbst!' Statt Theorien über die Welt, Analyse der Strukturen des Bewusstseins, wie Dinge für uns erscheinen. Die Lebenswelt, nicht die Wissenschaft, ist der Ausgangspunkt allen Verstehens.",
+    detail: "Husserl entwickelte die transzendentale Phänomenologie: durch Epoché (Einklammerung der Wirklichkeitsthese) werden die reinen Bewusstseinsstrukturen freigelegt. Heidegger radikalisierte dies zur Fundamentalontologie: Nicht Bewusstsein, sondern das In-der-Welt-Sein des Daseins ist der Ausgangspunkt. Merleau-Ponty betonte den Leib als Ort der Welterfahrung. Die Phänomenologie befruchtete Existentialismus, Hermeneutik und Kognitionswissenschaft.",
+    reps: ["Edmund Husserl (1859–1938)", "Martin Heidegger (1889–1976)", "Maurice Merleau-Ponty (1908–1961)", "Emmanuel Levinas (1906–1995)"] },
+
+  { id: "existentialismus", label: "Existentialismus", era: "20. Jahrhundert",
+    core: "'Die Existenz geht der Essenz voraus': Der Mensch ist nicht durch eine Natur oder ein Wesen vorgeprägt – er macht sich durch seine freien Entscheidungen zu dem, was er ist. Radikale Freiheit und totale Verantwortung.",
+    detail: "Sartre zog aus Heideggers Dasein-Analyse atheistische Konsequenzen: Da es keinen Gott gibt, gibt es keine menschliche Natur. Das erzeugt 'Angst' (angoisse) als Bewusstsein der eigenen Freiheit. Beauvoir wendet den Existentialismus auf die Geschlechterfrage an: 'Man kommt nicht als Frau zur Welt, man wird es.' Camus betonte das Absurde: das Schweigen der Welt auf unser Sinnbedürfnis. Der Existentialismus prägte Literatur, Psychotherapie und politisches Engagement.",
+    reps: ["Jean-Paul Sartre (1905–1980)", "Simone de Beauvoir (1908–1986)", "Albert Camus (1913–1960)", "Karl Jaspers (1883–1969)"] },
+
+  { id: "analytisch", label: "Analytische Philosophie", era: "20. Jahrhundert",
+    core: "Philosophische Probleme entstehen oft durch Sprachverwirrung. Aufgabe der Philosophie ist logische Klärung und sprachliche Analyse. Präzision, Überprüfbarkeit und Anknüpfung an die Wissenschaften als Leitideale.",
+    detail: "Frege und Russell begründeten die moderne Logik. Der frühe Wittgenstein (Tractatus) meinte, die logische Struktur der Sprache bilde die Welt ab; sinnlose Sätze entstehen, wenn man Grenzen der Sprache überschreitet. Der späte Wittgenstein (Philosophische Untersuchungen) lehnte dies ab: Bedeutung entsteht im Sprachspiel, im Gebrauch. Austin und Ryle analysierten Alltagssprache. Die analytische Philosophie dominiert heute den anglophonen akademischen Betrieb.",
+    reps: ["Gottlob Frege (1848–1925)", "Bertrand Russell (1872–1970)", "Ludwig Wittgenstein (1889–1951)", "Gilbert Ryle (1900–1976)", "W. V. O. Quine (1908–2000)"] },
+
+  { id: "kritische_theorie", label: "Kritische Theorie", era: "20. Jahrhundert",
+    core: "Gesellschaftskritik als Verbindung von Marx, Freud und Weber. Warum ist die Aufklärung nicht befreiend, sondern in neue Herrschaftsformen umgeschlagen? Kritik an instrumenteller Vernunft, Kulturindustrie und autoritären Strukturen.",
+    detail: "Die Frankfurter Schule (Horkheimer, Adorno) diagnostizierte in der 'Dialektik der Aufklärung': Die Vernunft, die Natur beherrschen wollte, kehrt sich gegen den Menschen selbst. Marcuse analysierte den 'eindimensionalen Menschen' der Konsumgesellschaft. Habermas reformierte die Kritische Theorie: Kommunikatives Handeln und der herrschaftsfreie Diskurs als neue Grundlage für Vernunft und Demokratie. Die Kritische Theorie beeinflusste direkt die Poststrukturalisten.",
+    reps: ["Max Horkheimer (1895–1973)", "Theodor W. Adorno (1903–1969)", "Herbert Marcuse (1898–1979)", "Jürgen Habermas (*1929)"] },
+
+  { id: "poststrukturalismus", label: "Poststrukturalismus", era: "20. Jahrhundert",
+    core: "Dekonstruktion stabiler Bedeutungen, Machtstrukturen und Subjektkonzepte. Es gibt kein stabiles 'Selbst', keine eindeutige Wahrheit, keine unschuldige Sprache – alles ist durchzogen von Macht und Differenz.",
+    detail: "Foucault analysierte, wie Wissen und Macht untrennbar verflochten sind: Diskurse produzieren Wahrheiten, die Körper und Subjekte formen. Derrida zeigte durch Dekonstruktion, dass Texte immer mehr und anderes bedeuten als sie sagen – binäre Oppositionen (Vernunft/Gefühl) sind instabil. Deleuze entwickelte eine Philosophie der Differenz und des Werdens. Der Poststrukturalismus beeinflusste Cultural Studies, Queer Theory, Postkolonialismus und Literaturwissenschaft massiv.",
+    reps: ["Michel Foucault (1926–1984)", "Jacques Derrida (1930–2004)", "Gilles Deleuze (1925–1995)", "Julia Kristeva (*1941)"] },
+];
+
+// Connections: source → target, type, label
+const edges = [
+  // Antike interne
+  { s: "aristotelismus", t: "platonismus",    type: "criticizes",  label: "Kritisiert die getrennte Ideenwelt; Form ist in den Dingen selbst" },
+  { s: "stoizismus",     t: "platonismus",    type: "influences",  label: "Übernimmt Logos-Konzept und Tugendideal" },
+  { s: "epikureismus",   t: "aristotelismus", type: "criticizes",  label: "Lehnt Teleologie und politisches Leben ab" },
+  { s: "skeptizismus",   t: "platonismus",    type: "criticizes",  label: "Bestreitet die Erkennbarkeit der Ideen" },
+
+  // Antike → Mittelalter
+  { s: "platonismus",    t: "scholastik",     type: "influences",  label: "Neuplatonismus prägt frühes christliches Denken; Augustinus verbindet Platon mit Christentum" },
+  { s: "aristotelismus", t: "scholastik",     type: "synthesizes", label: "Thomas von Aquin synthetisiert Aristoteles mit christlicher Theologie (Fünf Gottesbeweise, Seinsanalogien)" },
+  { s: "stoizismus",     t: "scholastik",     type: "influences",  label: "Naturrechtslehre und Logos-Begriff fließen in scholastische Ethik ein" },
+  { s: "platonismus",    t: "mystik",         type: "influences",  label: "Plotins Henologie (Einheitslehre) prägt die Mystik fundamental: Aufstieg zur Gottheit" },
+  { s: "aristotelismus", t: "nominalismus",   type: "criticizes",  label: "Ockham kritisiert den aristotelischen Universalienrealismus" },
+  { s: "scholastik",     t: "nominalismus",   type: "criticizes",  label: "Nominalismus zerstört scholastischen Realismus; Glaube und Vernunft werden getrennt" },
+
+  // Mittelalter → Neuzeit
+  { s: "nominalismus",   t: "empirismus",     type: "continues",   label: "Ockham bereitet Empirismus vor: Nur Einzeldinge und Erfahrung zählen" },
+  { s: "scholastik",     t: "rationalismus",  type: "criticizes",  label: "Descartes bricht mit Schulphilosophie; baut auf zweifelsfreiem Fundament neu auf" },
+  { s: "scholastik",     t: "aufklaerung",    type: "criticizes",  label: "Aufklärung wendet sich gegen Autorität der Kirche und scholastische Begriffsmetaphysik" },
+  { s: "mystik",         t: "idealismus",     type: "influences",  label: "Deutsche Mystik (Eckhart) beeinflusst Begriff der Innerlichkeit und spekulativen Theologie" },
+  { s: "stoizismus",     t: "aufklaerung",    type: "influences",  label: "Stoisches Naturrecht und kosmopolitische Ethik prägen aufklärerische Menschenrechtsdiskussion" },
+
+  // Neuzeit intern
+  { s: "rationalismus",  t: "empirismus",     type: "criticizes",  label: "Locke und Hume weisen angeborene Ideen zurück; Hume zerstört rationalistischen Kausalitätsbegriff" },
+  { s: "empirismus",     t: "idealismus",     type: "synthesizes", label: "Kant synthetisiert: Erfahrung nötig, aber Verstand strukturiert sie durch apriorische Kategorien" },
+  { s: "rationalismus",  t: "idealismus",     type: "synthesizes", label: "Kant übernimmt rationalistisches Apriori, begrenzt es aber auf mögliche Erfahrung" },
+  { s: "aufklaerung",    t: "idealismus",     type: "continues",   label: "Idealismus radikalisiert Kants Projekt: Autonomie der Vernunft als oberstes Prinzip" },
+
+  // Neuzeit → 19. Jh.
+  { s: "idealismus",     t: "marxismus",      type: "criticizes",  label: "Marx stellt Hegel 'vom Kopf auf die Füße': Materie, nicht Geist, ist das Primäre" },
+  { s: "empirismus",     t: "positivismus",   type: "continues",   label: "Positivismus radikalisiert empiristische Grundthese: Nur Erfahrung ist Wissensquelle" },
+  { s: "empirismus",     t: "utilitarismus",  type: "continues",   label: "Utilitarismus wendet empiristische Haltung auf Ethik an: Moral ist empirisch berechenbar" },
+  { s: "idealismus",     t: "lebensphilosophie", type: "criticizes", label: "Schopenhauer kritisiert Hegels Vernunftoptimismus; setzt blinden Willen gegen absoluten Geist" },
+  { s: "aufklaerung",    t: "positivismus",   type: "continues",   label: "Positivismus vollendet aufklärerischen Wissenschaftsoptimismus" },
+  { s: "aufklaerung",    t: "utilitarismus",  type: "continues",   label: "Utilitarismus ist politische Philosophie der Aufklärung: Rationalität in der Gesetzgebung" },
+  { s: "empirismus",     t: "pragmatismus",   type: "continues",   label: "Pragmatismus erbt empiristische Ablehnung angeborener Ideen und Metaphysik" },
+
+  // 19. Jh. intern
+  { s: "lebensphilosophie", t: "marxismus",   type: "criticizes",  label: "Nietzsche attackiert sozialistischen Gleichheitsbegriff und Fortschrittsglauben" },
+  { s: "positivismus",   t: "pragmatismus",   type: "influences",  label: "Pragmatismus teilt anti-metaphysische Haltung; Wahrheit als experimentelle Bewährung" },
+
+  // 19. Jh. → 20. Jh.
+  { s: "lebensphilosophie", t: "phaenomenologie", type: "influences", label: "Diltheys Verstehen-Methode und Bergson beeinflussen Husserl und Heidegger" },
+  { s: "lebensphilosophie", t: "existentialismus", type: "continues", label: "Nietzsche ist direkter Vorläufer: Authentizität, Wille, Überwindung des Nihilismus" },
+  { s: "marxismus",      t: "kritische_theorie", type: "continues", label: "Frankfurter Schule entwickelt Marxismus weiter, verbindet ihn mit Freud und Kulturkritik" },
+  { s: "idealismus",     t: "kritische_theorie", type: "influences", label: "Hegels Dialektik und Negativitätsbegriff bleiben in der Kritischen Theorie zentral" },
+  { s: "empirismus",     t: "analytisch",     type: "continues",   label: "Analytische Philosophie erbt empiristische Grundhaltung, radikalisiert sie durch formale Logik" },
+  { s: "positivismus",   t: "analytisch",     type: "continues",   label: "Logischer Positivismus (Wiener Kreis) ist direkte Fortführung; Sinnlosigkeit von Metaphysik" },
+  { s: "pragmatismus",   t: "analytisch",     type: "influences",  label: "Späterer Rorty verbindet Pragmatismus und Analytische Philosophie" },
+
+  // 20. Jh. intern
+  { s: "phaenomenologie", t: "existentialismus", type: "continues", label: "Sartre und de Beauvoir bauen direkt auf Heideggers Daseinsanalyse auf" },
+  { s: "phaenomenologie", t: "hermeneutik",   type: "continues",   label: "(Gadamer → Hermeneutik, hier als Verweis)" },
+  { s: "kritische_theorie", t: "poststrukturalismus", type: "influences", label: "Macht-Kritik und Kulturindustrieanalyse prägen Foucaults Diskursanalyse" },
+  { s: "existentialismus", t: "poststrukturalismus", type: "criticizes", label: "Poststrukturalismus dekonstruiert das existentialistische Subjekt: kein stabiles 'Selbst'" },
+  { s: "analytisch",     t: "poststrukturalismus", type: "criticizes", label: "Sprachphilosophie (Austin, Wittgenstein) beeinflusst Derrida, aber Poststrukturalismus kritisiert Präzisionsanspruch" },
+  { s: "aufklaerung",    t: "kritische_theorie", type: "criticizes", label: "Kritische Theorie fragt: Warum schlug Aufklärung in Barbarei um? (Dialektik der Aufklärung)" },
+];
+
+// ═══════════════════════════════════════════════════
+// LAYOUT CONFIG
+// ═══════════════════════════════════════════════════
+const ERAS = ["Antike","Mittelalter","Neuzeit","19. Jahrhundert","20. Jahrhundert"];
+const NODE_W = 148, NODE_H = 46, NODE_MARGIN_X = 24, LANE_H = 160, LANE_PAD_TOP = 56;
+const EDGE_COLORS = {
+  influences:  "#b8a882",
+  continues:   "#6a9f8a",
+  criticizes:  "#c46b5a",
+  synthesizes: "#7a8fc4",
+};
+
+function layoutNodes() {
+  const byEra = {};
+  ERAS.forEach(e => byEra[e] = []);
+  nodes.forEach(n => { if(byEra[n.era]) byEra[n.era].push(n); });
+
+  let totalWidth = 0;
+  ERAS.forEach(era => {
+    const group = byEra[era];
+    const w = group.length * (NODE_W + NODE_MARGIN_X) - NODE_MARGIN_X;
+    if(w > totalWidth) totalWidth = w;
+  });
+  totalWidth += 160;
+
+  const posMap = {};
+  ERAS.forEach((era, i) => {
+    const group = byEra[era];
+    const groupW = group.length * (NODE_W + NODE_MARGIN_X) - NODE_MARGIN_X;
+    const startX = (totalWidth - groupW) / 2;
+    const y = i * LANE_H + LANE_PAD_TOP;
+    group.forEach((n, j) => {
+      posMap[n.id] = {
+        x: startX + j * (NODE_W + NODE_MARGIN_X),
+        y,
+        w: NODE_W, h: NODE_H
+      };
+    });
+  });
+
+  return { posMap, totalWidth, totalHeight: ERAS.length * LANE_H + LANE_PAD_TOP + NODE_H + 40 };
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════
+const { posMap, totalWidth, totalHeight } = layoutNodes();
+
+const svg = d3.select("#main-svg")
+  .attr("width", totalWidth)
+  .attr("height", totalHeight);
+
+// Swim lane backgrounds
+ERAS.forEach((era, i) => {
+  const y = i * LANE_H;
+  const color = ERA_COLORS[era];
+  svg.append("rect")
+    .attr("class","swim-lane-bg")
+    .attr("x", 0).attr("y", y)
+    .attr("width", totalWidth).attr("height", LANE_H)
+    .attr("fill", i % 2 === 0 ? "#ffffff04" : "#00000000");
+
+  svg.append("line")
+    .attr("class","era-divider")
+    .attr("x1", 20).attr("y1", y + LANE_H)
+    .attr("x2", totalWidth - 20).attr("y2", y + LANE_H)
+    .attr("stroke", color).attr("stroke-opacity", 0.15).attr("stroke-width", 1);
+
+  svg.append("text")
+    .attr("class","swim-label")
+    .attr("x", 18).attr("y", y + 22)
+    .attr("fill", color)
+    .text(era.toUpperCase());
+});
+
+// ── Defs for arrowheads ──
+const defs = svg.append("defs");
+Object.entries(EDGE_COLORS).forEach(([type, color]) => {
+  defs.append("marker")
+    .attr("id", `arrow-${type}`)
+    .attr("viewBox","0 -5 10 10")
+    .attr("refX", 8).attr("refY", 0)
+    .attr("markerWidth", 6).attr("markerHeight", 6)
+    .attr("orient","auto")
+    .append("path")
+    .attr("d","M0,-5L10,0L0,5")
+    .attr("fill", color).attr("opacity", 0.8);
+});
+
+// ── Edge paths ──
+const edgeGroup = svg.append("g").attr("class","edges");
+
+function curvePath(s, t) {
+  const p = posMap[s], q = posMap[t];
+  if(!p || !q) return "";
+  const x1 = p.x + p.w/2, y1 = p.y + p.h;
+  const x2 = q.x + q.w/2, y2 = q.y;
+  const dy = y2 - y1;
+  const cp1y = y1 + dy * 0.4;
+  const cp2y = y2 - dy * 0.4;
+  // Slight horizontal offset to avoid direct overlap
+  const dx = (x2 - x1) * 0.1;
+  return `M${x1},${y1} C${x1+dx},${cp1y} ${x2-dx},${cp2y} ${x2},${y2}`;
+}
+
+const edgePaths = edgeGroup.selectAll("path")
+  .data(edges.filter(e => posMap[e.s] && posMap[e.t]))
+  .join("path")
+  .attr("class","edge-path")
+  .attr("d", e => curvePath(e.s, e.t))
+  .attr("stroke", e => EDGE_COLORS[e.type])
+  .attr("stroke-dasharray", e => e.type === "continues" ? "6 4" : null)
+  .attr("marker-end", e => `url(#arrow-${e.type})`);
+
+// ── Node groups ──
+const tooltip = d3.select("#tooltip");
+const panel = document.getElementById("panel");
+const panelContent = document.getElementById("panel-content");
+
+const nodeGroup = svg.append("g").attr("class","nodes");
+
+const nodeGs = nodeGroup.selectAll("g")
+  .data(nodes.filter(n => posMap[n.id]))
+  .join("g")
+  .attr("class","node-group")
+  .attr("transform", n => `translate(${posMap[n.id].x},${posMap[n.id].y})`);
+
+// Shadow filter
+const filter = defs.append("filter").attr("id","node-shadow");
+filter.append("feDropShadow")
+  .attr("dx",0).attr("dy",2).attr("stdDeviation",4)
+  .attr("flood-color","#000").attr("flood-opacity",0.5);
+
+nodeGs.append("rect")
+  .attr("class","node-rect")
+  .attr("width", NODE_W).attr("height", NODE_H)
+  .attr("fill", n => ERA_COLORS[n.era] + "22")
+  .attr("stroke", n => ERA_COLORS[n.era])
+  .attr("stroke-opacity", 0.6)
+  .attr("filter","url(#node-shadow)");
+
+// Era tag
+nodeGs.append("text")
+  .attr("class","node-era-tag")
+  .attr("x", NODE_W/2).attr("y", 13)
+  .attr("text-anchor","middle")
+  .attr("fill", n => ERA_COLORS[n.era])
+  .text(n => n.era.toUpperCase());
+
+// Node label
+nodeGs.append("text")
+  .attr("class","node-name")
+  .attr("x", NODE_W/2).attr("y", 31)
+  .attr("text-anchor","middle")
+  .text(n => n.label);
+
+// ── Interactions ──
+nodeGs
+  .on("mouseenter", function(event, d) {
+    // Highlight connected edges
+    edgePaths.classed("highlighted", e => e.s === d.id || e.t === d.id)
+             .classed("dimmed",      e => e.s !== d.id && e.t !== d.id);
+    tooltip.style("opacity",1)
+      .html(`<strong>${d.label}</strong> · ${d.era}<br><span style="color:#888;font-size:0.8rem">Klicken für Details</span>`);
+  })
+  .on("mousemove", function(event) {
+    tooltip.style("left",(event.clientX+16)+"px").style("top",(event.clientY-10)+"px");
+  })
+  .on("mouseleave", function() {
+    edgePaths.classed("highlighted", false).classed("dimmed", false);
+    tooltip.style("opacity",0);
+  })
+  .on("click", function(event, d) {
+    const color = ERA_COLORS[d.era];
+    const outgoing = edges.filter(e => e.s === d.id && posMap[e.t]);
+    const incoming = edges.filter(e => e.t === d.id && posMap[e.s]);
+
+    const connHtml = (list, direction) => list.map(e => {
+      const otherId = direction === "out" ? e.t : e.s;
+      const other = nodes.find(n => n.id === otherId);
+      const arrow = direction === "out"
+        ? `<span class="conn-arrow ${e.type}">${{influences:"beeinflusst",continues:"setzt fort",criticizes:"kritisiert",synthesizes:"synthetisiert"}[e.type]}</span>`
+        : `<span class="conn-arrow ${e.type}">${{influences:"beeinflusst durch",continues:"fortgesetzt von",criticizes:"kritisiert von",synthesizes:"synthetisiert von"}[e.type]}</span>`;
+      return `<li class="conn-item">${arrow}<div><strong style="color:#d8d0c8">${other.label}</strong> <span style="color:#555;font-size:0.8em">(${other.era})</span><br>${e.label}</div></li>`;
+    }).join("");
+
+    panelContent.innerHTML = `
+      <div class="panel-era" style="color:${color}">${d.era}</div>
+      <h2 class="panel-title">${d.label}</h2>
+      <div class="panel-divider" style="color:${color}"></div>
+
+      <div class="section-label">Kernthese</div>
+      <p class="panel-core">${d.core}</p>
+
+      <div class="section-label">Vertiefung</div>
+      <p class="panel-detail">${d.detail}</p>
+
+      <div class="section-label">Bedeutende Vertreter</div>
+      <div class="reps-wrap">
+        ${d.reps.map(r => `<span class="rep-chip" style="color:${color};border-color:${color}40;background:${color}10">${r}</span>`).join("")}
+      </div>
+
+      ${outgoing.length ? `
+        <div class="section-label" style="margin-top:1.25rem">Ausgehende Verbindungen</div>
+        <ul class="connections-list">${connHtml(outgoing,"out")}</ul>` : ""}
+
+      ${incoming.length ? `
+        <div class="section-label" style="margin-top:1.25rem">Eingehende Einflüsse</div>
+        <ul class="connections-list">${connHtml(incoming,"in")}</ul>` : ""}
+    `;
+    panel.classList.add("open");
+    tooltip.style("opacity",0);
+  });
+
+document.getElementById("panel-close").addEventListener("click", () => {
+  panel.classList.remove("open");
+});
+
+// Click outside to close
+document.getElementById("graph-wrap").addEventListener("click", e => {
+  if(e.target === e.currentTarget || e.target.tagName === "svg") {
+    panel.classList.remove("open");
+    edgePaths.classed("highlighted",false).classed("dimmed",false);
+  }
+});
+</script>
+</body>
+</html>
