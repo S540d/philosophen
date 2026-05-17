@@ -58,8 +58,15 @@ Ordnet Knoten in horizontalen Swim-Lanes nach Epoche an. Gibt `posMap` (id → {
 | **Lernfortschritt** | `#progress-wrap`, `#progress-bar-fill` | `visited` Set, `favorites` Set, `updateProgress()`, localStorage |
 | **Lernpfade** | `#path-bar`, `#path-stepper` | `PATHS[]`, `startPath()`, `exitPath()`, `goToStep()`, `applyPathHighlight()` |
 | **Quiz** | dynamisch in `#quiz-section` | `generateQuestions(node)`, `renderQuiz(node)`, `shuffle()` (Fisher-Yates), `pick()` |
-| **Zeitleiste** | `#view-toggle`, `#timeline-wrap`, `#timeline-svg` | `NODE_YEARS`, `PHILOSOPHER_DOTS[]`, `renderTimeline()` (lazy, einmalig) |
+| **Zeitleiste** | `#view-toggle`, `#timeline-wrap`, `#timeline-svg` | `NODE_YEARS`, `PHILOSOPHER_DOTS[]`, `renderTimeline()` (lazy; `timelineRendered`-Flag wird bei Resize zurückgesetzt) |
 | **Mobile** | `#legend-toggle`, `@media ≤640px` | Bottom-Sheet-Panel, collapsible legend, D3 zoom auf SVG |
+
+## Quiz-Implementierungsdetails
+
+- **Satzerkennung**: Regex `^.+?[.!?](?=\s+[A-ZÄÖÜ„]|\s*$)` – erkennt Satzende nur vor Großbuchstaben, vermeidet Abkürzungen (`v. a.`, `z. B.`)
+- **Distraktor-Deduplication**: Vertreter-Frage schließt Personen aus, die auch im `reps[]`-Array des abgefragten Knotens stehen
+- **Verbindungsfragen**: Nur ausgehende Kanten (`e.s === node.id`); Frageformulierung per `questionMap` (key = `e.type`)
+- **Zugänglichkeit**: `aria-label` aller Antwort-Buttons wird nach Auflösung gesetzt (`– richtige Antwort` / `– falsche Antwort`)
 
 ## Neue Denkschulen hinzufügen
 
