@@ -254,6 +254,52 @@
   .conn-arrow.criticizes  { background: #c46b5a25; color: #c46b5a; border: 1px solid #c46b5a60; }
   .conn-arrow.synthesizes { background: #7a8fc425; color: #7a8fc4; border: 1px solid #7a8fc460; }
 
+  /* ── Legend toggle (mobile) ── */
+  #legend-toggle {
+    display: none;
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 0.6rem 0;
+    transition: color 0.2s;
+  }
+  #legend-toggle:hover { color: var(--text); }
+
+  @media (max-width: 640px) {
+    #legend-toggle { display: block; }
+    #legend { display: none; padding-bottom: 0.75rem; }
+    #legend.open { display: flex; }
+
+    #graph-wrap {
+      overflow: hidden;
+      height: 55vh;
+      padding: 0;
+    }
+    #graph-wrap svg {
+      width: 100% !important;
+      height: 100%;
+    }
+
+    #panel {
+      top: auto;
+      bottom: -82vh;
+      right: 0;
+      width: 100vw;
+      height: 82vh;
+      border-left: none;
+      border-top: 1px solid var(--border);
+      border-radius: 12px 12px 0 0;
+      transition: bottom 0.35s cubic-bezier(0.16,1,0.3,1);
+    }
+    #panel.open { bottom: 0; right: 0; }
+  }
+
   /* ── Search ── */
   #search-wrap {
     display: flex;
@@ -315,7 +361,6 @@
     transition: color 0.2s;
   }
   #progress-reset:hover { color: var(--text); }
-  /* Fix #3: brightness statt fill-opacity für "heller" Effekt bei besuchten Knoten */
   .node-group.visited .node-rect { filter: brightness(1.5) !important; }
   .node-visited-mark { font-size: 9px; fill: #b8a882; fill-opacity: 0; pointer-events: none; }
   .node-group.visited .node-visited-mark { fill-opacity: 0.9; }
@@ -358,6 +403,7 @@
   </div>
 </header>
 
+<button id="legend-toggle" aria-controls="legend" aria-expanded="false">Legende ▾</button>
 <div id="search-wrap">
   <input id="search-input" type="search" placeholder="Denkschule oder Philosoph suchen …" autocomplete="off">
 </div>
@@ -631,23 +677,31 @@ const svg = d3.select("#main-svg")
   .attr("width", totalWidth)
   .attr("height", totalHeight);
 
+const zoomG = svg.append("g").attr("class", "zoom-layer");
+
+// ── Zoom & Pan (mouse wheel + pinch-to-zoom) ──
+const zoom = d3.zoom()
+  .scaleExtent([0.3, 4])
+  .on("zoom", event => zoomG.attr("transform", event.transform));
+svg.call(zoom);
+
 // Swim lane backgrounds
 ERAS.forEach((era, i) => {
   const y = i * LANE_H;
   const color = ERA_COLORS[era];
-  svg.append("rect")
+  zoomG.append("rect")
     .attr("class","swim-lane-bg")
     .attr("x", 0).attr("y", y)
     .attr("width", totalWidth).attr("height", LANE_H)
     .attr("fill", i % 2 === 0 ? "#ffffff04" : "#00000000");
 
-  svg.append("line")
+  zoomG.append("line")
     .attr("class","era-divider")
     .attr("x1", 20).attr("y1", y + LANE_H)
     .attr("x2", totalWidth - 20).attr("y2", y + LANE_H)
     .attr("stroke", color).attr("stroke-opacity", 0.15).attr("stroke-width", 1);
 
-  svg.append("text")
+  zoomG.append("text")
     .attr("class","swim-label")
     .attr("x", 18).attr("y", y + 22)
     .attr("fill", color)
@@ -669,7 +723,7 @@ Object.entries(EDGE_COLORS).forEach(([type, color]) => {
 });
 
 // ── Edge paths ──
-const edgeGroup = svg.append("g").attr("class","edges");
+const edgeGroup = zoomG.append("g").attr("class","edges");
 
 function curvePath(s, t) {
   const p = posMap[s], q = posMap[t];
@@ -698,7 +752,7 @@ const tooltip = d3.select("#tooltip");
 const panel = document.getElementById("panel");
 const panelContent = document.getElementById("panel-content");
 
-const nodeGroup = svg.append("g").attr("class","nodes");
+const nodeGroup = zoomG.append("g").attr("class","nodes");
 
 const nodeGs = nodeGroup.selectAll("g")
   .data(nodes.filter(n => posMap[n.id]))
@@ -862,12 +916,21 @@ document.getElementById("progress-reset").addEventListener("click", () => {
   if (favBtn) favBtn.classList.remove("active");
 });
 
-// Click outside to close
+// Click outside to close (SVG background or wrap)
 document.getElementById("graph-wrap").addEventListener("click", e => {
-  if(e.target === e.currentTarget || e.target.tagName === "svg") {
+  const tag = e.target.tagName.toLowerCase();
+  if (e.target === e.currentTarget || tag === "svg" || (tag === "rect" && e.target.classList.contains("swim-lane-bg"))) {
     panel.classList.remove("open");
     edgePaths.classed("highlighted",false).classed("dimmed",false);
   }
+});
+
+// ── Legend toggle (mobile) ──
+document.getElementById("legend-toggle").addEventListener("click", function() {
+  const legend = document.getElementById("legend");
+  const open = legend.classList.toggle("open");
+  this.setAttribute("aria-expanded", open);
+  this.textContent = open ? "Legende ▴" : "Legende ▾";
 });
 </script>
 </body>
