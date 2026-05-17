@@ -1,5 +1,7 @@
 # Philosophische Denkschulen – Abhängigkeitsgraph
 
+**[→ Zur Lernseite öffnen](https://s540d.github.io/philosophen/start.html)**
+
 Ein interaktiver Lern-Graph der westlichen Philosophiegeschichte – für alle, die verstehen wollen, wie die großen Denkschulen zusammenhängen, sich beeinflussen und voneinander abgrenzen.
 
 ## Ziel

@@ -339,6 +339,200 @@
     margin-bottom: 1rem;
   }
 
+  /* ── Lernpfade ── */
+  #path-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 2rem 0.25rem;
+  }
+  .path-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.85rem;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .path-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+  .path-btn.active { color: #b8a882; border-color: #b8a882; }
+
+  #path-stepper {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.6rem 2rem;
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    margin-top: 0.5rem;
+  }
+  #path-stepper.visible { display: flex; }
+  .path-nav-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    padding: 0.3rem 0.8rem;
+    transition: background 0.2s;
+  }
+  .path-nav-btn:hover { background: rgba(255,255,255,0.06); }
+  .path-nav-btn:disabled { opacity: 0.25; cursor: default; }
+  #path-exit-btn {
+    background: none; border: none;
+    color: var(--muted); cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+    transition: color 0.2s;
+  }
+  #path-exit-btn:hover { color: var(--text); }
+
+  .node-group.path-member .node-rect { stroke-opacity: 1 !important; stroke-width: 2 !important; }
+  .node-group.path-current .node-rect { filter: brightness(1.8) !important; stroke-width: 3 !important; }
+  .node-group.path-dim { opacity: 0.1; }
+
+  #path-transition-banner {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-style: italic;
+    line-height: 1.7;
+    color: #7a8fc4;
+    border-left: 2px solid #7a8fc440;
+    padding: 0.5rem 0 0.5rem 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  /* ── Legend toggle (mobile) ── */
+  #legend-toggle {
+    display: none;
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 0.6rem 0;
+    transition: color 0.2s;
+  }
+  #legend-toggle:hover { color: var(--text); }
+
+  @media (max-width: 640px) {
+    #legend-toggle { display: block; }
+    #legend { display: none; padding-bottom: 0.75rem; }
+    #legend.open { display: flex; }
+
+    #graph-wrap {
+      overflow: hidden;
+      height: 55vh;
+      padding: 0;
+    }
+    #graph-wrap svg {
+      width: 100% !important;
+      height: 100%;
+    }
+
+    #panel {
+      top: auto;
+      bottom: -82vh;
+      right: 0;
+      width: 100vw;
+      height: 82vh;
+      border-left: none;
+      border-top: 1px solid var(--border);
+      border-radius: 12px 12px 0 0;
+      transition: bottom 0.35s cubic-bezier(0.16,1,0.3,1);
+    }
+    #panel.open { bottom: 0; right: 0; }
+  }
+
+  /* ── Search ── */
+  #search-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 0.75rem 2rem 0;
+  }
+  #search-input {
+    background: #1a1a24;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    padding: 0.5rem 1rem;
+    width: min(340px, 100%);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  #search-input::placeholder { color: var(--muted); }
+  #search-input:focus { border-color: #b8a88260; }
+  .node-group.search-match .node-rect { filter: brightness(1.6); }
+  .node-group.search-dim { opacity: 0.12; }
+
+  /* ── Progress ── */
+  #progress-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.6rem 2rem 0;
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  #progress-bar-track {
+    width: 120px; height: 2px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  #progress-bar-fill {
+    height: 100%;
+    background: #b8a882;
+    border-radius: 1px;
+    transition: width 0.4s;
+    width: 0%;
+  }
+  #progress-reset {
+    background: none; border: none;
+    color: var(--muted); cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.4rem;
+    transition: color 0.2s;
+  }
+  #progress-reset:hover { color: var(--text); }
+  .node-group.visited .node-rect { filter: brightness(1.5) !important; }
+  .node-visited-mark { font-size: 9px; fill: #b8a882; fill-opacity: 0; pointer-events: none; }
+  .node-group.visited .node-visited-mark { fill-opacity: 0.9; }
+  #panel-fav-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 1.2rem; padding: 0.2rem; line-height: 1;
+    color: var(--muted); transition: color 0.2s, transform 0.15s;
+  }
+  #panel-fav-btn:hover { transform: scale(1.2); }
+  #panel-fav-btn.active { color: #b8a882; }
   /* ── Tooltip ── */
   #tooltip {
     position: fixed;
@@ -363,13 +557,31 @@
   <p class="eyebrow">Ideengeschichte · Westliche Philosophie</p>
   <h1>Philosophische Denkschulen</h1>
   <p class="subtitle">Abhängigkeiten, Einflüsse und Brüche von der Antike bis zur Gegenwart</p>
+  <div id="progress-wrap">
+    <span id="progress-text">0 / 22 erkundet</span>
+    <div id="progress-bar-track"><div id="progress-bar-fill"></div></div>
+    <button id="progress-reset">Zurücksetzen</button>
+  </div>
 </header>
+
+<button id="legend-toggle" aria-controls="legend" aria-expanded="false">Legende ▾</button>
+<div id="search-wrap">
+  <input id="search-input" type="search" placeholder="Denkschule oder Philosoph suchen …" autocomplete="off">
+</div>
 
 <div id="legend">
   <div class="legend-item"><div class="legend-line influences"></div> Beeinflusst</div>
   <div class="legend-item"><div class="legend-line continues dashed"></div> Setzt fort</div>
   <div class="legend-item"><div class="legend-line criticizes"></div> Kritisiert / Bricht mit</div>
   <div class="legend-item"><div class="legend-line synthesizes"></div> Synthetisiert</div>
+</div>
+
+<div id="path-bar"></div>
+<div id="path-stepper">
+  <button class="path-nav-btn" id="path-prev-btn">← Zurück</button>
+  <span id="path-counter"></span>
+  <button class="path-nav-btn" id="path-next-btn">Weiter →</button>
+  <button id="path-exit-btn" type="button" title="Pfad beenden" aria-label="Lernpfad beenden">✕</button>
 </div>
 
 <div id="graph-wrap"><svg id="main-svg"></svg></div>
@@ -380,6 +592,61 @@
 <div id="tooltip"></div>
 
 <script>
+// ═══════════════════════════════════════════════════
+// LERNPFADE
+// ═══════════════════════════════════════════════════
+const PATHS = [
+  { id: "klassisch", title: "Der klassische Weg",
+    desc: "Von den Ursprüngen der Philosophie bis zum deutschen Idealismus",
+    steps: [
+      { id: "platonismus",    transition: null },
+      { id: "aristotelismus", transition: "Aristoteles kritisiert Platons getrennte Ideenwelt: Die Form ist in den Dingen selbst, nicht jenseits von ihnen." },
+      { id: "scholastik",     transition: "Thomas von Aquin synthetisiert Aristoteles mit dem christlichen Gottesbegriff und begründet die Hochscholastik." },
+      { id: "rationalismus",  transition: "Descartes bricht mit der Schulphilosophie und sucht durch radikalen Zweifel ein zweifelsfreies Fundament." },
+      { id: "idealismus",     transition: "Kant und Hegel radikalisieren den Rationalismus: Der Geist konstituiert die Wirklichkeit – nicht umgekehrt." },
+    ]},
+  { id: "erkenntnis", title: "Die Erkenntnistheorie",
+    desc: "Wie kommt der Mensch zu gesichertem Wissen?",
+    steps: [
+      { id: "rationalismus",  transition: null },
+      { id: "empirismus",     transition: "Locke und Hume bestreiten angeborene Ideen: Alles Wissen stammt aus Sinneserfahrung – der Geist ist eine tabula rasa." },
+      { id: "idealismus",     transition: "Kant synthetisiert: Erfahrung ist notwendig, aber der Verstand strukturiert sie durch apriorische Kategorien." },
+      { id: "positivismus",   transition: "Comte und später der Wiener Kreis radikalisieren den Empirismus: Nur empirisch Verifizierbares ist sinnvoll." },
+      { id: "pragmatismus",   transition: "Peirce und James wenden die empiristische Haltung auf die Praxis an: Wahr ist, was sich als nützlich bewährt." },
+    ]},
+  { id: "revolution", title: "Vom Idealismus zur Kritik",
+    desc: "Wie Hegels Dialektik Marx und die Frankfurter Schule prägte",
+    steps: [
+      { id: "idealismus",       transition: null },
+      { id: "marxismus",        transition: "Marx stellt Hegel 'vom Kopf auf die Füße': Nicht der Geist, sondern die materiellen Produktionsverhältnisse treiben die Geschichte." },
+      { id: "lebensphilosophie",transition: "Nietzsche attackiert den Fortschrittsglauben: Wille zur Macht und ewige Wiederkunft statt Klassenkampf und Utopie." },
+      { id: "kritische_theorie",transition: "Adorno und Horkheimer fragen: Warum schlug Aufklärung in Barbarei um? Sie verbinden Marx mit Freud und Kulturkritik." },
+      { id: "poststrukturalismus",transition: "Foucault und Derrida dekonstruieren stabile Wahrheiten und Machtstrukturen – auch die der Kritischen Theorie." },
+    ]},
+  { id: "modern", title: "Die Moderne",
+    desc: "Phänomenologie, Existentialismus und ihre Nachfolger im 20. Jahrhundert",
+    steps: [
+      { id: "lebensphilosophie", transition: null },
+      { id: "phaenomenologie",   transition: "Husserl entwickelt eine neue Methode: Rückkehr zu den Dingen selbst, Ausklammerung aller Vorannahmen (Epoché)." },
+      { id: "existentialismus",  transition: "Sartre und de Beauvoir wenden Heideggers Daseinsanalyse atheistisch: Existenz geht der Essenz voraus." },
+      { id: "analytisch",        transition: "Parallel dazu: Wittgenstein zeigt, dass viele philosophische Probleme durch Sprachverwirrung entstehen." },
+      { id: "poststrukturalismus",transition: "Foucault und Derrida dekonstruieren das stabile Subjekt des Existentialismus." },
+    ]},
+];
+
+// PROGRESS & FAVORITES (localStorage)
+// ═══════════════════════════════════════════════════
+const VISITED_KEY = 'philo-visited';
+const FAV_KEY     = 'philo-favorites';
+function safeLoad(key) {
+  try { return new Set(JSON.parse(localStorage.getItem(key) || '[]')); }
+  catch { localStorage.removeItem(key); return new Set(); }
+}
+let visited   = safeLoad(VISITED_KEY);
+let favorites = safeLoad(FAV_KEY);
+function saveVisited()   { localStorage.setItem(VISITED_KEY, JSON.stringify([...visited])); }
+function saveFavorites() { localStorage.setItem(FAV_KEY,     JSON.stringify([...favorites])); }
+
 // ═══════════════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════════════
@@ -620,23 +887,31 @@ const svg = d3.select("#main-svg")
   .attr("width", totalWidth)
   .attr("height", totalHeight);
 
+const zoomG = svg.append("g").attr("class", "zoom-layer");
+
+// ── Zoom & Pan (mouse wheel + pinch-to-zoom) ──
+const zoom = d3.zoom()
+  .scaleExtent([0.3, 4])
+  .on("zoom", event => zoomG.attr("transform", event.transform));
+svg.call(zoom);
+
 // Swim lane backgrounds
 ERAS.forEach((era, i) => {
   const y = i * LANE_H;
   const color = ERA_COLORS[era];
-  svg.append("rect")
+  zoomG.append("rect")
     .attr("class","swim-lane-bg")
     .attr("x", 0).attr("y", y)
     .attr("width", totalWidth).attr("height", LANE_H)
     .attr("fill", i % 2 === 0 ? "#ffffff04" : "#00000000");
 
-  svg.append("line")
+  zoomG.append("line")
     .attr("class","era-divider")
     .attr("x1", 20).attr("y1", y + LANE_H)
     .attr("x2", totalWidth - 20).attr("y2", y + LANE_H)
     .attr("stroke", color).attr("stroke-opacity", 0.15).attr("stroke-width", 1);
 
-  svg.append("text")
+  zoomG.append("text")
     .attr("class","swim-label")
     .attr("x", 18).attr("y", y + 22)
     .attr("fill", color)
@@ -658,7 +933,7 @@ Object.entries(EDGE_COLORS).forEach(([type, color]) => {
 });
 
 // ── Edge paths ──
-const edgeGroup = svg.append("g").attr("class","edges");
+const edgeGroup = zoomG.append("g").attr("class","edges");
 
 function curvePath(s, t) {
   const p = posMap[s], q = posMap[t];
@@ -687,7 +962,7 @@ const tooltip = d3.select("#tooltip");
 const panel = document.getElementById("panel");
 const panelContent = document.getElementById("panel-content");
 
-const nodeGroup = svg.append("g").attr("class","nodes");
+const nodeGroup = zoomG.append("g").attr("class","nodes");
 
 const nodeGs = nodeGroup.selectAll("g")
   .data(nodes.filter(n => posMap[n.id]))
@@ -724,6 +999,25 @@ nodeGs.append("text")
   .attr("text-anchor","middle")
   .text(n => n.label);
 
+// Visited checkmark (top-right corner)
+nodeGs.append("text")
+  .attr("class","node-visited-mark")
+  .attr("x", NODE_W - 6).attr("y", 12)
+  .attr("text-anchor","end")
+  .text("✓");
+
+function updateProgress() {
+  const validIds = new Set(nodes.filter(n => posMap[n.id]).map(n => n.id));
+  visited = new Set([...visited].filter(id => validIds.has(id)));
+  const total = validIds.size;
+  if (total === 0) return;
+  const count = Math.min(visited.size, total);
+  document.getElementById("progress-text").textContent = `${count} / ${total} erkundet`;
+  document.getElementById("progress-bar-fill").style.width = `${(count / total) * 100}%`;
+  nodeGs.classed("visited", d => visited.has(d.id));
+}
+updateProgress();
+
 // ── Interactions ──
 nodeGs
   .on("mouseenter", function(event, d) {
@@ -737,71 +1031,130 @@ nodeGs
     tooltip.style("left",(event.clientX+16)+"px").style("top",(event.clientY-10)+"px");
   })
   .on("mouseleave", function() {
-    edgePaths.classed("highlighted", false).classed("dimmed", false);
+    if (activePath) applyPathHighlight();
+    else edgePaths.classed("highlighted", false).classed("dimmed", false);
     tooltip.style("opacity",0);
   })
-  .on("click", function(event, d) {
-    const color = ERA_COLORS[d.era];
-    const outgoing = edges.filter(e => e.s === d.id && posMap[e.t]);
-    const incoming = edges.filter(e => e.t === d.id && posMap[e.s]);
+  .on("click", function(event, d) { showNodePanel(d); });
 
-    const connHtml = (list, direction) => list.map(e => {
-      const otherId = direction === "out" ? e.t : e.s;
-      const other = nodes.find(n => n.id === otherId);
-      const arrow = direction === "out"
-        ? `<span class="conn-arrow ${e.type}">${{influences:"beeinflusst",continues:"setzt fort",criticizes:"kritisiert",synthesizes:"synthetisiert"}[e.type]}</span>`
-        : `<span class="conn-arrow ${e.type}">${{influences:"beeinflusst durch",continues:"fortgesetzt von",criticizes:"kritisiert von",synthesizes:"synthetisiert von"}[e.type]}</span>`;
-      return `<li class="conn-item">${arrow}<div><strong style="color:#d8d0c8">${other.label}</strong> <span style="color:#555;font-size:0.8em">(${other.era})</span><br>${e.label}</div></li>`;
-    }).join("");
+// ── Shared panel-open function ──
+function showNodePanel(d, transitionText = null) {
+  const color = ERA_COLORS[d.era];
+  const outgoing = edges.filter(e => e.s === d.id && posMap[e.t]);
+  const incoming = edges.filter(e => e.t === d.id && posMap[e.s]);
 
-    panelContent.innerHTML = `
-      <div class="panel-era" style="color:${color}">${d.era}</div>
+  const connHtml = (list, direction) => list.map(e => {
+    const otherId = direction === "out" ? e.t : e.s;
+    const other = nodes.find(n => n.id === otherId);
+    const arrow = direction === "out"
+      ? `<span class="conn-arrow ${e.type}">${{influences:"beeinflusst",continues:"setzt fort",criticizes:"kritisiert",synthesizes:"synthetisiert"}[e.type]}</span>`
+      : `<span class="conn-arrow ${e.type}">${{influences:"beeinflusst durch",continues:"fortgesetzt von",criticizes:"kritisiert von",synthesizes:"synthetisiert von"}[e.type]}</span>`;
+    return `<li class="conn-item">${arrow}<div><strong style="color:#d8d0c8">${other.label}</strong> <span style="color:#555;font-size:0.8em">(${other.era})</span><br>${e.label}</div></li>`;
+  }).join("");
+
+  // Mark visited
+  visited.add(d.id);
+  saveVisited();
+  updateProgress();
+
+  panelContent.innerHTML = `
+    ${transitionText ? `<div id="path-transition-banner">${transitionText}</div>` : ""}
+    <div class="panel-era" style="color:${color}">${d.era}</div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:0.5rem">
       <h2 class="panel-title">${d.label}</h2>
-      <div class="panel-divider" style="color:${color}"></div>
+      <button id="panel-fav-btn" title="Lesezeichen" class="${favorites.has(d.id) ? 'active' : ''}">★</button>
+    </div>
+    <div class="panel-divider" style="color:${color}"></div>
 
-      <div class="section-label">Kernthese</div>
-      <p class="panel-core">${d.core}</p>
+    <div class="section-label">Kernthese</div>
+    <p class="panel-core">${d.core}</p>
 
-      <div class="section-label">Vertiefung</div>
-      <p class="panel-detail">${d.detail}</p>
+    <div class="section-label">Vertiefung</div>
+    <p class="panel-detail">${d.detail}</p>
 
-      <div class="section-label">Bedeutende Vertreter</div>
-      <div class="reps-wrap">
-        ${d.reps.map(r => `<span class="rep-chip" style="color:${color};border-color:${color}40;background:${color}10">${r}</span>`).join("")}
-      </div>
+    <div class="section-label">Bedeutende Vertreter</div>
+    <div class="reps-wrap">
+      ${d.reps.map(r => `<span class="rep-chip" style="color:${color};border-color:${color}40;background:${color}10">${r}</span>`).join("")}
+    </div>
 
-      ${outgoing.length ? `
-        <div class="section-label" style="margin-top:1.25rem">Ausgehende Verbindungen</div>
-        <ul class="connections-list">${connHtml(outgoing,"out")}</ul>` : ""}
+    ${outgoing.length ? `
+      <div class="section-label" style="margin-top:1.25rem">Ausgehende Verbindungen</div>
+      <ul class="connections-list">${connHtml(outgoing,"out")}</ul>` : ""}
 
-      ${incoming.length ? `
-        <div class="section-label" style="margin-top:1.25rem">Eingehende Einflüsse</div>
-        <ul class="connections-list">${connHtml(incoming,"in")}</ul>` : ""}
+    ${incoming.length ? `
+      <div class="section-label" style="margin-top:1.25rem">Eingehende Einflüsse</div>
+      <ul class="connections-list">${connHtml(incoming,"in")}</ul>` : ""}
 
-      <div id="quiz-section">
-        <button id="quiz-start-btn">Quiz starten</button>
-      </div>
-    `;
-    panel.classList.add("open");
-    tooltip.style("opacity",0);
+    <div id="quiz-section">
+      <button id="quiz-start-btn">Quiz starten</button>
+    </div>
+  `;
+  panel.classList.add("open");
+  tooltip.style("opacity", 0);
 
-    document.getElementById("quiz-start-btn").addEventListener("click", () => renderQuiz(d));
+  document.getElementById("quiz-start-btn").addEventListener("click", () => renderQuiz(d));
+
+  // Wire up favorite toggle after innerHTML is set
+  const favBtn = document.getElementById("panel-fav-btn");
+  if (favBtn) favBtn.addEventListener("click", () => {
+    if (favorites.has(d.id)) favorites.delete(d.id);
+    else favorites.add(d.id);
+    saveFavorites();
+    favBtn.classList.toggle("active", favorites.has(d.id));
   });
+}
 
 document.getElementById("panel-close").addEventListener("click", () => {
   panel.classList.remove("open");
 });
 
-// Click outside to close
+// ── Search ──
+document.getElementById("search-input").addEventListener("input", function() {
+  const q = this.value.trim().toLowerCase();
+  if (!q) {
+    nodeGs.classed("search-match", false).classed("search-dim", false);
+    edgePaths.classed("dimmed", false).classed("highlighted", false);
+    return;
+  }
+  const matchIds = new Set();
+  nodes.forEach(n => {
+    const hay = [n.label, n.core, ...n.reps].join(" ").toLowerCase();
+    if (hay.includes(q)) matchIds.add(n.id);
+  });
+  nodeGs.classed("search-match", d => matchIds.has(d.id))
+        .classed("search-dim",  d => !matchIds.has(d.id));
+  edgePaths.classed("dimmed",      e => !matchIds.has(e.s) && !matchIds.has(e.t))
+           .classed("highlighted", e =>  matchIds.has(e.s) ||  matchIds.has(e.t));
+});
+
+document.getElementById("progress-reset").addEventListener("click", () => {
+  visited.clear();
+  favorites.clear();
+  saveVisited();
+  saveFavorites();
+  updateProgress();
+  const favBtn = document.getElementById("panel-fav-btn");
+  if (favBtn) favBtn.classList.remove("active");
+});
+
+// Click outside to close (SVG background or wrap)
 document.getElementById("graph-wrap").addEventListener("click", e => {
-  if(e.target === e.currentTarget || e.target.tagName === "svg") {
+  const tag = e.target.tagName.toLowerCase();
+  if (e.target === e.currentTarget || tag === "svg" || (tag === "rect" && e.target.classList.contains("swim-lane-bg"))) {
     panel.classList.remove("open");
     edgePaths.classed("highlighted",false).classed("dimmed",false);
   }
 });
 
 // ── Quiz Engine ──
-function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 function pick(arr, n)  { return shuffle(arr).slice(0, n); }
 
 function generateQuestions(node) {
@@ -901,6 +1254,78 @@ function renderQuiz(node) {
   }
   showQ();
 }
+
+// ── Lernpfade ──
+let activePath = null;
+let activeStep = 0;
+
+const pathBar = document.getElementById("path-bar");
+const pathStepper = document.getElementById("path-stepper");
+const pathCounter = document.getElementById("path-counter");
+const pathPrevBtn = document.getElementById("path-prev-btn");
+const pathNextBtn = document.getElementById("path-next-btn");
+
+PATHS.forEach(p => {
+  const btn = document.createElement("button");
+  btn.className = "path-btn";
+  btn.dataset.pathId = p.id;
+  btn.title = p.desc;
+  btn.textContent = p.title;
+  btn.addEventListener("click", () => activePath && activePath.id === p.id ? exitPath() : startPath(p.id));
+  pathBar.appendChild(btn);
+});
+
+function startPath(pathId) {
+  activePath = PATHS.find(p => p.id === pathId);
+  activeStep = 0;
+  document.querySelectorAll(".path-btn").forEach(b => b.classList.toggle("active", b.dataset.pathId === pathId));
+  pathStepper.classList.add("visible");
+  goToStep(0);
+}
+
+function exitPath() {
+  activePath = null;
+  document.querySelectorAll(".path-btn").forEach(b => b.classList.remove("active"));
+  pathStepper.classList.remove("visible");
+  nodeGs.classed("path-member", false).classed("path-current", false).classed("path-dim", false);
+  edgePaths.classed("highlighted", false).classed("dimmed", false);
+  panel.classList.remove("open");
+}
+
+function applyPathHighlight() {
+  if (!activePath) return;
+  const memberIds = new Set(activePath.steps.map(s => s.id));
+  nodeGs
+    .classed("path-member",  d => memberIds.has(d.id) && d.id !== activePath.steps[activeStep].id)
+    .classed("path-current", d => d.id === activePath.steps[activeStep].id)
+    .classed("path-dim",     d => !memberIds.has(d.id));
+  edgePaths
+    .classed("highlighted", e => memberIds.has(e.s) && memberIds.has(e.t))
+    .classed("dimmed",      e => !memberIds.has(e.s) || !memberIds.has(e.t));
+}
+
+function goToStep(i) {
+  activeStep = i;
+  const step = activePath.steps[i];
+  const d = nodes.find(n => n.id === step.id);
+  applyPathHighlight();
+  pathCounter.textContent = `Station ${i + 1} / ${activePath.steps.length}: ${d.label}`;
+  pathPrevBtn.disabled = i === 0;
+  pathNextBtn.disabled = i === activePath.steps.length - 1;
+  showNodePanel(d, step.transition);
+}
+
+pathPrevBtn.addEventListener("click", () => { if (activeStep > 0) goToStep(activeStep - 1); });
+pathNextBtn.addEventListener("click", () => { if (activeStep < activePath.steps.length - 1) goToStep(activeStep + 1); });
+document.getElementById("path-exit-btn").addEventListener("click", exitPath);
+
+// ── Legend toggle (mobile) ──
+document.getElementById("legend-toggle").addEventListener("click", function() {
+  const legend = document.getElementById("legend");
+  const open = legend.classList.toggle("open");
+  this.setAttribute("aria-expanded", open);
+  this.textContent = open ? "Legende ▴" : "Legende ▾";
+});
 </script>
 </body>
 </html>
