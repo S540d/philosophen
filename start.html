@@ -254,6 +254,30 @@
   .conn-arrow.criticizes  { background: #c46b5a25; color: #c46b5a; border: 1px solid #c46b5a60; }
   .conn-arrow.synthesizes { background: #7a8fc425; color: #7a8fc4; border: 1px solid #7a8fc460; }
 
+  /* ── Search ── */
+  #search-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 0.75rem 2rem 0;
+  }
+  #search-input {
+    background: #1a1a24;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    padding: 0.5rem 1rem;
+    width: min(340px, 100%);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  #search-input::placeholder { color: var(--muted); }
+  #search-input:focus { border-color: #b8a88260; }
+  .node-group.search-match .node-rect { filter: brightness(1.6); }
+  .node-group.search-dim { opacity: 0.12; }
+
   /* ── Tooltip ── */
   #tooltip {
     position: fixed;
@@ -279,6 +303,10 @@
   <h1>Philosophische Denkschulen</h1>
   <p class="subtitle">Abhängigkeiten, Einflüsse und Brüche von der Antike bis zur Gegenwart</p>
 </header>
+
+<div id="search-wrap">
+  <input id="search-input" type="search" placeholder="Denkschule oder Philosoph suchen …" autocomplete="off">
+</div>
 
 <div id="legend">
   <div class="legend-item"><div class="legend-line influences"></div> Beeinflusst</div>
@@ -699,6 +727,25 @@ nodeGs
 
 document.getElementById("panel-close").addEventListener("click", () => {
   panel.classList.remove("open");
+});
+
+// ── Search ──
+document.getElementById("search-input").addEventListener("input", function() {
+  const q = this.value.trim().toLowerCase();
+  if (!q) {
+    nodeGs.classed("search-match", false).classed("search-dim", false);
+    edgePaths.classed("dimmed", false).classed("highlighted", false);
+    return;
+  }
+  const matchIds = new Set();
+  nodes.forEach(n => {
+    const hay = [n.label, n.core, ...n.reps].join(" ").toLowerCase();
+    if (hay.includes(q)) matchIds.add(n.id);
+  });
+  nodeGs.classed("search-match", d => matchIds.has(d.id))
+        .classed("search-dim",  d => !matchIds.has(d.id));
+  edgePaths.classed("dimmed",      e => !matchIds.has(e.s) && !matchIds.has(e.t))
+           .classed("highlighted", e =>  matchIds.has(e.s) ||  matchIds.has(e.t));
 });
 
 // Click outside to close
