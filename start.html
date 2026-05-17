@@ -1397,11 +1397,11 @@ document.getElementById("timeline-wrap").addEventListener("click", e => {
   }
 });
 
-// Re-render timeline on resize (reset guard so it re-lays out)
+// Re-render timeline on resize – immer Guard zurücksetzen, egal ob Timeline gerade sichtbar
 window.addEventListener("resize", () => {
+  timelineRendered = false;
+  document.getElementById("timeline-svg").innerHTML = "";
   if (document.getElementById("timeline-wrap").classList.contains("visible")) {
-    timelineRendered = false;
-    document.getElementById("timeline-svg").innerHTML = "";
     renderTimeline();
   }
 });
@@ -1438,10 +1438,10 @@ function generateQuestions(node) {
   const others = nodes.filter(n => n.id !== node.id && posMap[n.id]);
   const qs = [];
 
-  // Q1: Kernthese – Satz bei ". " nach mind. 20 Zeichen splitten, um Abkürzungen zu überspringen
+  // Q1: Kernthese – nur am echten Satzende splitten (Folgezeichen: Großbuchstabe oder Stringende)
   const snippet = n => {
-    const m = n.core.match(/^.{20,}?[.!?](?=\s|$)/);
-    return m ? m[0] : n.core.split('. ')[0] + '.';
+    const m = n.core.match(/^.+?[.!?](?=\s+[A-ZÄÖÜ„]|\s*$)/s);
+    return m ? m[0] : n.core;
   };
   qs.push({
     q: `Welche Aussage beschreibt die Kernthese von <em>${node.label}</em>?`,
@@ -1472,15 +1472,20 @@ function generateQuestions(node) {
     });
   }
 
-  // Q3: Verbindung – nur ausgehende Kanten, um Fragerichtung eindeutig zu halten
+  // Q3: Verbindung – nur ausgehende Kanten, Frage je Typ grammatisch korrekt formuliert
   const outEdges = edges.filter(e => e.s === node.id && posMap[e.t]);
   if (outEdges.length) {
     const e = shuffle(outEdges)[0];
     const target = nodes.find(n => n.id === e.t);
-    const verbMap = { influences: "beeinflusst", continues: "setzt fort", criticizes: "kritisiert", synthesizes: "synthetisiert" };
+    const questionMap = {
+      influences: `Welche Schule wird von <em>${node.label}</em> beeinflusst?`,
+      continues:  `Welche Schule setzt <em>${node.label}</em> fort?`,
+      criticizes:  `Welche Schule wird von <em>${node.label}</em> kritisiert?`,
+      synthesizes: `Welche Schule entsteht durch Synthese mit <em>${node.label}</em>?`,
+    };
     const wrongs = pick(others.filter(n => n.id !== target.id), 3);
     qs.push({
-      q: `Welche Schule wird von <em>${node.label}</em> ${verbMap[e.type]}?`,
+      q: questionMap[e.type],
       opts: shuffle([
         { text: target.label, correct: true },
         ...wrongs.map(n => ({ text: n.label, correct: false }))
@@ -1525,9 +1530,9 @@ function renderQuiz(node) {
           if (b.dataset.ok === "true") {
             b.classList.add("correct");
             b.setAttribute("aria-label", b.textContent + " – richtige Antwort");
-          } else if (b === btn) {
-            b.classList.add("wrong");
-            b.setAttribute("aria-label", b.textContent + " – falsch");
+          } else {
+            if (b === btn) b.classList.add("wrong");
+            b.setAttribute("aria-label", b.textContent + " – falsche Antwort");
           }
         });
         const fb = document.createElement("div");
