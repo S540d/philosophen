@@ -317,9 +317,9 @@
   #quiz-start-btn {
     display: block; width: 100%;
     background: none;
-    border: 1px solid var(--border);
+    border: 1px solid rgba(255,255,255,0.18);
     border-radius: 2px;
-    color: var(--muted);
+    color: #9a9088;
     cursor: pointer;
     font-family: var(--font-ui);
     font-size: 0.65rem;
@@ -1350,6 +1350,7 @@ function renderTimeline() {
       .attr("rx", 2);
 
     bar.on("click", () => {
+      tooltip.style("opacity", 0);
       const panelNode = nodes.find(n => n.id === node.id);
       if (panelNode) openPanelForNode(panelNode);
     }).on("mouseenter", function(event) {
@@ -1389,6 +1390,22 @@ function renderTimeline() {
 
 function openPanelForNode(d) { showNodePanel(d); }
 
+// Close panel when clicking timeline background
+document.getElementById("timeline-wrap").addEventListener("click", e => {
+  if (e.target === e.currentTarget || e.target.tagName === "svg") {
+    panel.classList.remove("open");
+  }
+});
+
+// Re-render timeline on resize (reset guard so it re-lays out)
+window.addEventListener("resize", () => {
+  if (document.getElementById("timeline-wrap").classList.contains("visible")) {
+    timelineRendered = false;
+    document.getElementById("timeline-svg").innerHTML = "";
+    renderTimeline();
+  }
+});
+
 // ── View Toggle ──
 document.getElementById("btn-graph").addEventListener("click", () => {
   document.getElementById("graph-wrap").style.display = "";
@@ -1421,9 +1438,13 @@ function generateQuestions(node) {
   const others = nodes.filter(n => n.id !== node.id && posMap[n.id]);
   const qs = [];
 
-  const snippet = n => n.core.split('.')[0] + '.';
+  // Q1: Kernthese – Satz bei ". " nach mind. 20 Zeichen splitten, um Abkürzungen zu überspringen
+  const snippet = n => {
+    const m = n.core.match(/^.{20,}?[.!?](?=\s|$)/);
+    return m ? m[0] : n.core.split('. ')[0] + '.';
+  };
   qs.push({
-    q: `Welche Aussage beschreibt die Kernthese des <em>${node.label}</em>?`,
+    q: `Welche Aussage beschreibt die Kernthese von <em>${node.label}</em>?`,
     opts: shuffle([
       { text: snippet(node), correct: true },
       ...pick(others, 3).map(n => ({ text: snippet(n), correct: false }))
@@ -1431,30 +1452,37 @@ function generateQuestions(node) {
     exp: snippet(node)
   });
 
+  // Q2: Vertreter – Duplikate über Schulen hinweg ausschließen
   const myRep = shuffle(node.reps)[0];
-  qs.push({
-    q: `Welcher Denker gehört zum <em>${node.label}</em>?`,
-    opts: shuffle([
-      { text: myRep, correct: true },
-      ...pick(others, 3).map(n => ({ text: shuffle(n.reps)[0], correct: false }))
-    ]),
-    exp: `${myRep} ist ein bedeutender Vertreter des ${node.label}.`
-  });
-
-  const allEdges = [
-    ...edges.filter(e => e.s === node.id && posMap[e.t]).map(e => ({ ...e, dir: "out" })),
-    ...edges.filter(e => e.t === node.id && posMap[e.s]).map(e => ({ ...e, dir: "in"  })),
-  ];
-  if (allEdges.length) {
-    const e = shuffle(allEdges)[0];
-    const isOut = e.dir === "out";
-    const other = nodes.find(n => n.id === (isOut ? e.t : e.s));
-    const verb = { influences: isOut ? "beeinflusst" : "wird beeinflusst von", continues: isOut ? "setzt fort" : "wird fortgesetzt von", criticizes: isOut ? "kritisiert" : "wird kritisiert von", synthesizes: isOut ? "synthetisiert" : "wird synthetisiert durch" }[e.type];
-    const wrongs = pick(others.filter(n => n.id !== other.id), 3);
+  const myRepSet = new Set(node.reps);
+  const distractorReps = [];
+  for (const other of shuffle(others)) {
+    const rep = shuffle(other.reps.filter(r => !myRepSet.has(r)))[0];
+    if (rep && !distractorReps.includes(rep)) distractorReps.push(rep);
+    if (distractorReps.length >= 3) break;
+  }
+  if (distractorReps.length >= 3) {
     qs.push({
-      q: `Welche Schule ${verb} der <em>${node.label}</em>?`,
+      q: `Welche Person gehört zur Schule <em>${node.label}</em>?`,
       opts: shuffle([
-        { text: other.label, correct: true },
+        { text: myRep, correct: true },
+        ...distractorReps.map(r => ({ text: r, correct: false }))
+      ]),
+      exp: `${myRep} gehört zur Schule ${node.label}.`
+    });
+  }
+
+  // Q3: Verbindung – nur ausgehende Kanten, um Fragerichtung eindeutig zu halten
+  const outEdges = edges.filter(e => e.s === node.id && posMap[e.t]);
+  if (outEdges.length) {
+    const e = shuffle(outEdges)[0];
+    const target = nodes.find(n => n.id === e.t);
+    const verbMap = { influences: "beeinflusst", continues: "setzt fort", criticizes: "kritisiert", synthesizes: "synthetisiert" };
+    const wrongs = pick(others.filter(n => n.id !== target.id), 3);
+    qs.push({
+      q: `Welche Schule wird von <em>${node.label}</em> ${verbMap[e.type]}?`,
+      opts: shuffle([
+        { text: target.label, correct: true },
         ...wrongs.map(n => ({ text: n.label, correct: false }))
       ]),
       exp: e.label
@@ -1485,7 +1513,7 @@ function renderQuiz(node) {
       <div class="quiz-q-counter">Frage ${qi + 1} / ${qs.length}</div>
       <div class="quiz-q">${q.q}</div>
       <div class="quiz-options">
-        ${q.opts.map((o, i) => `<button class="quiz-opt" data-i="${i}" data-ok="${o.correct}">${o.text}</button>`).join("")}
+        ${q.opts.map((o, i) => `<button class="quiz-opt" data-i="${i}" data-ok="${o.correct}" aria-label="${o.text}">${o.text}</button>`).join("")}
       </div>
     `;
     section.querySelectorAll(".quiz-opt").forEach(btn => {
@@ -1494,8 +1522,13 @@ function renderQuiz(node) {
         if (correct) score++;
         section.querySelectorAll(".quiz-opt").forEach(b => {
           b.disabled = true;
-          if (b.dataset.ok === "true") b.classList.add("correct");
-          else if (b === btn) b.classList.add("wrong");
+          if (b.dataset.ok === "true") {
+            b.classList.add("correct");
+            b.setAttribute("aria-label", b.textContent + " – richtige Antwort");
+          } else if (b === btn) {
+            b.classList.add("wrong");
+            b.setAttribute("aria-label", b.textContent + " – falsch");
+          }
         });
         const fb = document.createElement("div");
         fb.className = "quiz-feedback " + (correct ? "correct" : "wrong");
