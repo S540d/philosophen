@@ -254,6 +254,64 @@
   .conn-arrow.criticizes  { background: #c46b5a25; color: #c46b5a; border: 1px solid #c46b5a60; }
   .conn-arrow.synthesizes { background: #7a8fc425; color: #7a8fc4; border: 1px solid #7a8fc460; }
 
+  /* ── View Toggle ── */
+  #view-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    padding: 0.75rem 0 0;
+  }
+  .view-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.4rem 1.1rem;
+    transition: background 0.2s, color 0.2s;
+  }
+  .view-btn:first-child { border-radius: 2px 0 0 2px; }
+  .view-btn:last-child  { border-radius: 0 2px 2px 0; border-left: none; }
+  .view-btn.active { background: rgba(184,168,130,0.12); color: #b8a882; border-color: #b8a88260; }
+
+  /* ── Timeline ── */
+  #timeline-wrap { display: none; width: 100%; overflow-x: auto; padding: 1.5rem 0 2rem; }
+  #timeline-wrap.visible { display: block; }
+  .tl-bar { cursor: pointer; transition: opacity 0.15s; }
+  .tl-bar:hover { opacity: 0.85; }
+  .tl-label {
+    font-family: var(--font-display);
+    font-size: 11px;
+    fill: #c8c0b4;
+    dominant-baseline: middle;
+    pointer-events: none;
+  }
+  .tl-dot { cursor: pointer; }
+  .tl-dot:hover { r: 5; }
+  .tl-dot-label {
+    font-family: var(--font-ui);
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    fill: #6b6560;
+    pointer-events: none;
+  }
+  .tl-axis-label {
+    font-family: var(--font-ui);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    fill: #4a4540;
+  }
+  .tl-era-label {
+    font-family: var(--font-ui);
+    font-size: 8px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    fill-opacity: 0.3;
+  }
+
   /* ── Tooltip ── */
   #tooltip {
     position: fixed;
@@ -280,6 +338,11 @@
   <p class="subtitle">Abhängigkeiten, Einflüsse und Brüche von der Antike bis zur Gegenwart</p>
 </header>
 
+<div id="view-toggle">
+  <button class="view-btn active" id="btn-graph">Graph</button>
+  <button class="view-btn" id="btn-timeline">Zeitleiste</button>
+</div>
+
 <div id="legend">
   <div class="legend-item"><div class="legend-line influences"></div> Beeinflusst</div>
   <div class="legend-item"><div class="legend-line continues dashed"></div> Setzt fort</div>
@@ -288,6 +351,7 @@
 </div>
 
 <div id="graph-wrap"><svg id="main-svg"></svg></div>
+<div id="timeline-wrap"><svg id="timeline-svg"></svg></div>
 <div id="panel">
   <button id="panel-close">✕</button>
   <div id="panel-content"></div>
@@ -707,6 +771,227 @@ document.getElementById("graph-wrap").addEventListener("click", e => {
     panel.classList.remove("open");
     edgePaths.classed("highlighted",false).classed("dimmed",false);
   }
+});
+
+// ═══════════════════════════════════════════════════
+// ZEITLEISTEN-ANSICHT
+// ═══════════════════════════════════════════════════
+const NODE_YEARS = {
+  platonismus:        { start: -428, end: 485  },
+  aristotelismus:     { start: -384, end: 200  },
+  stoizismus:         { start: -334, end: 180  },
+  epikureismus:       { start: -341, end: -40  },
+  skeptizismus:       { start: -360, end: 210  },
+  scholastik:         { start: 1033, end: 1308 },
+  nominalismus:       { start: 1050, end: 1360 },
+  mystik:             { start: 1098, end: 1464 },
+  rationalismus:      { start: 1596, end: 1716 },
+  empirismus:         { start: 1561, end: 1776 },
+  aufklaerung:        { start: 1694, end: 1804 },
+  idealismus:         { start: 1724, end: 1831 },
+  marxismus:          { start: 1818, end: 1937 },
+  positivismus:       { start: 1798, end: 1916 },
+  utilitarismus:      { start: 1748, end: 1900 },
+  lebensphilosophie:  { start: 1788, end: 1941 },
+  pragmatismus:       { start: 1839, end: 2007 },
+  phaenomenologie:    { start: 1859, end: 1995 },
+  existentialismus:   { start: 1883, end: 1980 },
+  analytisch:         { start: 1848, end: 2000 },
+  kritische_theorie:  { start: 1895, end: 1979 },
+  poststrukturalismus:{ start: 1925, end: 2004 },
+};
+
+const PHILOSOPHER_DOTS = [
+  { nodeId: "platonismus",        name: "Platon",       year: -428 },
+  { nodeId: "platonismus",        name: "Plotin",       year: 205  },
+  { nodeId: "aristotelismus",     name: "Aristoteles",  year: -384 },
+  { nodeId: "stoizismus",         name: "Zenon",        year: -334 },
+  { nodeId: "stoizismus",         name: "Marc Aurel",   year: 121  },
+  { nodeId: "epikureismus",       name: "Epikur",       year: -341 },
+  { nodeId: "skeptizismus",       name: "Pyrrhon",      year: -360 },
+  { nodeId: "scholastik",         name: "Anselm",       year: 1033 },
+  { nodeId: "scholastik",         name: "Thomas v. A.", year: 1225 },
+  { nodeId: "nominalismus",       name: "Ockham",       year: 1287 },
+  { nodeId: "mystik",             name: "Hildegard",    year: 1098 },
+  { nodeId: "mystik",             name: "Eckhart",      year: 1260 },
+  { nodeId: "rationalismus",      name: "Descartes",    year: 1596 },
+  { nodeId: "rationalismus",      name: "Spinoza",      year: 1632 },
+  { nodeId: "rationalismus",      name: "Leibniz",      year: 1646 },
+  { nodeId: "empirismus",         name: "Bacon",        year: 1561 },
+  { nodeId: "empirismus",         name: "Locke",        year: 1632 },
+  { nodeId: "empirismus",         name: "Hume",         year: 1711 },
+  { nodeId: "aufklaerung",        name: "Voltaire",     year: 1694 },
+  { nodeId: "aufklaerung",        name: "Rousseau",     year: 1712 },
+  { nodeId: "aufklaerung",        name: "Kant",         year: 1724 },
+  { nodeId: "idealismus",         name: "Fichte",       year: 1762 },
+  { nodeId: "idealismus",         name: "Hegel",        year: 1770 },
+  { nodeId: "marxismus",          name: "Marx",         year: 1818 },
+  { nodeId: "positivismus",       name: "Comte",        year: 1798 },
+  { nodeId: "utilitarismus",      name: "Bentham",      year: 1748 },
+  { nodeId: "utilitarismus",      name: "Mill",         year: 1806 },
+  { nodeId: "lebensphilosophie",  name: "Schopenhauer", year: 1788 },
+  { nodeId: "lebensphilosophie",  name: "Nietzsche",    year: 1844 },
+  { nodeId: "pragmatismus",       name: "Peirce",       year: 1839 },
+  { nodeId: "pragmatismus",       name: "Dewey",        year: 1859 },
+  { nodeId: "phaenomenologie",    name: "Husserl",      year: 1859 },
+  { nodeId: "phaenomenologie",    name: "Heidegger",    year: 1889 },
+  { nodeId: "existentialismus",   name: "Sartre",       year: 1905 },
+  { nodeId: "existentialismus",   name: "Beauvoir",     year: 1908 },
+  { nodeId: "analytisch",         name: "Russell",      year: 1872 },
+  { nodeId: "analytisch",         name: "Wittgenstein", year: 1889 },
+  { nodeId: "kritische_theorie",  name: "Adorno",       year: 1903 },
+  { nodeId: "kritische_theorie",  name: "Habermas",     year: 1929 },
+  { nodeId: "poststrukturalismus",name: "Foucault",     year: 1926 },
+  { nodeId: "poststrukturalismus",name: "Derrida",      year: 1930 },
+];
+
+let timelineRendered = false;
+
+function renderTimeline() {
+  if (timelineRendered) return;
+  timelineRendered = true;
+
+  const LABEL_W = 158, ROW_H = 34, PAD_TOP = 20, PAD_BOT = 50, BAR_H = 14;
+  const tlNodes = nodes
+    .filter(n => NODE_YEARS[n.id])
+    .sort((a, b) => NODE_YEARS[a.id].start - NODE_YEARS[b.id].start);
+
+  const svgW = Math.max(960, window.innerWidth - 40);
+  const svgH = PAD_TOP + tlNodes.length * ROW_H + PAD_BOT;
+  const chartW = svgW - LABEL_W - 20;
+
+  const xMin = -650, xMax = 2050;
+  const xScale = d3.scaleLinear().domain([xMin, xMax]).range([0, chartW]);
+
+  const tlSvg = d3.select("#timeline-svg")
+    .attr("width", svgW).attr("height", svgH);
+
+  const g = tlSvg.append("g").attr("transform", `translate(${LABEL_W},${PAD_TOP})`);
+
+  // Axis grid lines + labels
+  const ticks = [-500, 0, 500, 1000, 1200, 1400, 1600, 1700, 1800, 1850, 1900, 1950, 2000];
+  ticks.forEach(yr => {
+    const x = xScale(yr);
+    g.append("line")
+      .attr("x1", x).attr("x2", x)
+      .attr("y1", 0).attr("y2", tlNodes.length * ROW_H + 8)
+      .attr("stroke", "#ffffff08").attr("stroke-width", 1);
+    g.append("text")
+      .attr("class", "tl-axis-label")
+      .attr("x", x).attr("y", tlNodes.length * ROW_H + 22)
+      .attr("text-anchor", "middle")
+      .text(yr < 0 ? `${Math.abs(yr)} v. Chr.` : yr);
+  });
+
+  // Zero line
+  g.append("line")
+    .attr("x1", xScale(0)).attr("x2", xScale(0))
+    .attr("y1", 0).attr("y2", tlNodes.length * ROW_H)
+    .attr("stroke", "#ffffff18").attr("stroke-width", 1).attr("stroke-dasharray", "3 4");
+
+  // Rows
+  tlNodes.forEach((node, i) => {
+    const yr = NODE_YEARS[node.id];
+    const color = ERA_COLORS[node.era];
+    const y = i * ROW_H;
+    const barY = y + (ROW_H - BAR_H) / 2;
+    const x1 = xScale(yr.start), x2 = xScale(yr.end);
+
+    // Label (left)
+    tlSvg.append("text")
+      .attr("class", "tl-label")
+      .attr("x", LABEL_W - 8).attr("y", PAD_TOP + y + ROW_H / 2)
+      .attr("text-anchor", "end")
+      .attr("fill", color)
+      .text(node.label);
+
+    // Bar
+    const bar = g.append("rect")
+      .attr("class", "tl-bar")
+      .attr("x", x1).attr("y", barY)
+      .attr("width", Math.max(x2 - x1, 4)).attr("height", BAR_H)
+      .attr("fill", color + "40").attr("stroke", color).attr("stroke-opacity", 0.5)
+      .attr("rx", 2);
+
+    bar.on("click", () => {
+      const panelNode = nodes.find(n => n.id === node.id);
+      if (panelNode) openPanelForNode(panelNode);
+    }).on("mouseenter", function(event) {
+      tooltip.style("opacity", 1)
+        .html(`<strong>${node.label}</strong><br><span style="color:#888;font-size:0.8rem">${yr.start < 0 ? Math.abs(yr.start)+" v. Chr." : yr.start} – ${yr.end < 0 ? Math.abs(yr.end)+" v. Chr." : yr.end}</span>`);
+    }).on("mousemove", function(event) {
+      tooltip.style("left",(event.clientX+16)+"px").style("top",(event.clientY-10)+"px");
+    }).on("mouseleave", () => tooltip.style("opacity", 0));
+
+    // Philosopher dots
+    const dots = PHILOSOPHER_DOTS.filter(d => d.nodeId === node.id);
+    dots.forEach(dot => {
+      const dx = xScale(dot.year);
+      g.append("circle")
+        .attr("class", "tl-dot")
+        .attr("cx", dx).attr("cy", barY + BAR_H / 2)
+        .attr("r", 3.5)
+        .attr("fill", color).attr("stroke", "#0c0c0e").attr("stroke-width", 1.5)
+        .on("mouseenter", function(event) {
+          tooltip.style("opacity", 1)
+            .html(`<strong>${dot.name}</strong><br><span style="color:#888;font-size:0.8rem">*${dot.year < 0 ? Math.abs(dot.year)+" v. Chr." : dot.year}</span>`);
+        })
+        .on("mousemove", function(event) {
+          tooltip.style("left",(event.clientX+16)+"px").style("top",(event.clientY-10)+"px");
+        })
+        .on("mouseleave", () => tooltip.style("opacity", 0));
+
+      // Dot label (only if space above)
+      g.append("text")
+        .attr("class", "tl-dot-label")
+        .attr("x", dx).attr("y", barY - 3)
+        .attr("text-anchor", "middle")
+        .text(dot.name);
+    });
+  });
+}
+
+function openPanelForNode(d) {
+  const color = ERA_COLORS[d.era];
+  const outgoing = edges.filter(e => e.s === d.id && posMap[e.t]);
+  const incoming = edges.filter(e => e.t === d.id && posMap[e.s]);
+  const connHtml = (list, direction) => list.map(e => {
+    const otherId = direction === "out" ? e.t : e.s;
+    const other = nodes.find(n => n.id === otherId);
+    const arrow = direction === "out"
+      ? `<span class="conn-arrow ${e.type}">${{influences:"beeinflusst",continues:"setzt fort",criticizes:"kritisiert",synthesizes:"synthetisiert"}[e.type]}</span>`
+      : `<span class="conn-arrow ${e.type}">${{influences:"beeinflusst durch",continues:"fortgesetzt von",criticizes:"kritisiert von",synthesizes:"synthetisiert von"}[e.type]}</span>`;
+    return `<li class="conn-item">${arrow}<div><strong style="color:#d8d0c8">${other.label}</strong> <span style="color:#555;font-size:0.8em">(${other.era})</span><br>${e.label}</div></li>`;
+  }).join("");
+  panelContent.innerHTML = `
+    <div class="panel-era" style="color:${color}">${d.era}</div>
+    <h2 class="panel-title">${d.label}</h2>
+    <div class="panel-divider" style="color:${color}"></div>
+    <div class="section-label">Kernthese</div><p class="panel-core">${d.core}</p>
+    <div class="section-label">Vertiefung</div><p class="panel-detail">${d.detail}</p>
+    <div class="section-label">Bedeutende Vertreter</div>
+    <div class="reps-wrap">${d.reps.map(r => `<span class="rep-chip" style="color:${color};border-color:${color}40;background:${color}10">${r}</span>`).join("")}</div>
+    ${outgoing.length ? `<div class="section-label" style="margin-top:1.25rem">Ausgehende Verbindungen</div><ul class="connections-list">${connHtml(outgoing,"out")}</ul>` : ""}
+    ${incoming.length ? `<div class="section-label" style="margin-top:1.25rem">Eingehende Einflüsse</div><ul class="connections-list">${connHtml(incoming,"in")}</ul>` : ""}
+  `;
+  panel.classList.add("open");
+}
+
+// ── View Toggle ──
+document.getElementById("btn-graph").addEventListener("click", () => {
+  document.getElementById("graph-wrap").style.display = "";
+  document.getElementById("timeline-wrap").classList.remove("visible");
+  document.getElementById("btn-graph").classList.add("active");
+  document.getElementById("btn-timeline").classList.remove("active");
+  document.getElementById("legend").style.display = "";
+});
+document.getElementById("btn-timeline").addEventListener("click", () => {
+  document.getElementById("graph-wrap").style.display = "none";
+  document.getElementById("timeline-wrap").classList.add("visible");
+  document.getElementById("btn-timeline").classList.add("active");
+  document.getElementById("btn-graph").classList.remove("active");
+  document.getElementById("legend").style.display = "none";
+  renderTimeline();
 });
 </script>
 </body>
