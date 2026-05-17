@@ -369,7 +369,7 @@
   <button class="path-nav-btn" id="path-prev-btn">← Zurück</button>
   <span id="path-counter"></span>
   <button class="path-nav-btn" id="path-next-btn">Weiter →</button>
-  <button id="path-exit-btn" title="Pfad beenden">✕</button>
+  <button id="path-exit-btn" type="button" title="Pfad beenden" aria-label="Lernpfad beenden">✕</button>
 </div>
 
 <div id="graph-wrap"><svg id="main-svg"></svg></div>
@@ -779,7 +779,8 @@ nodeGs
     tooltip.style("left",(event.clientX+16)+"px").style("top",(event.clientY-10)+"px");
   })
   .on("mouseleave", function() {
-    edgePaths.classed("highlighted", false).classed("dimmed", false);
+    if (activePath) applyPathHighlight();
+    else edgePaths.classed("highlighted", false).classed("dimmed", false);
     tooltip.style("opacity",0);
   })
   .on("click", function(event, d) { showNodePanel(d); });
@@ -866,7 +867,6 @@ function startPath(pathId) {
   activeStep = 0;
   document.querySelectorAll(".path-btn").forEach(b => b.classList.toggle("active", b.dataset.pathId === pathId));
   pathStepper.classList.add("visible");
-  applyPathHighlight();
   goToStep(0);
 }
 
