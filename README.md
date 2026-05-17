@@ -8,8 +8,8 @@ Diese Seite richtet sich an alle, die sich für Philosophie interessieren und ei
 
 ## Inhalt
 
-- **20 philosophische Denkschulen** von der Antike bis ins 20. Jahrhundert
-- **~35 typisierte Verbindungen** zwischen den Schulen:
+- **22 philosophische Denkschulen** von der Antike bis ins 20. Jahrhundert
+- **~40 typisierte Verbindungen** zwischen den Schulen:
   - *Beeinflusst* – eine Schule prägt eine andere
   - *Setzt fort* – direkte inhaltliche Fortsetzung
   - *Kritisiert / Bricht mit* – bewusste Abgrenzung
@@ -33,8 +33,10 @@ Diese Seite richtet sich an alle, die sich für Philosophie interessieren und ei
 ## Lokale Entwicklung
 
 ```bash
-# Einfach die Datei im Browser öffnen:
-open start.html
+# Datei direkt im Browser öffnen (Pfad je nach Betriebssystem anpassen):
+# macOS:   open start.html
+# Linux:   xdg-open start.html
+# Windows: start start.html
 
 # Oder mit einem lokalen Entwicklungsserver:
 npx serve .
