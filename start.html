@@ -254,6 +254,54 @@
   .conn-arrow.criticizes  { background: #c46b5a25; color: #c46b5a; border: 1px solid #c46b5a60; }
   .conn-arrow.synthesizes { background: #7a8fc425; color: #7a8fc4; border: 1px solid #7a8fc460; }
 
+  /* ── Progress ── */
+  #progress-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.6rem 2rem 0;
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  #progress-bar-track {
+    width: 120px; height: 2px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  #progress-bar-fill {
+    height: 100%;
+    background: #b8a882;
+    border-radius: 1px;
+    transition: width 0.4s;
+    width: 0%;
+  }
+  #progress-reset {
+    background: none; border: none;
+    color: var(--muted); cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.4rem;
+    transition: color 0.2s;
+  }
+  #progress-reset:hover { color: var(--text); }
+  .node-group.visited .node-rect { fill-opacity: 0.4 !important; }
+  .node-visited-mark { font-size: 9px; fill: #b8a882; fill-opacity: 0; pointer-events: none; }
+  .node-group.visited .node-visited-mark { fill-opacity: 0.9; }
+  #panel-fav-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 1.2rem; padding: 0.2rem; line-height: 1;
+    color: var(--muted); transition: color 0.2s, transform 0.15s;
+  }
+  #panel-fav-btn:hover { transform: scale(1.2); }
+  #panel-fav-btn.active { color: #b8a882; }
+
   /* ── Tooltip ── */
   #tooltip {
     position: fixed;
@@ -278,6 +326,11 @@
   <p class="eyebrow">Ideengeschichte · Westliche Philosophie</p>
   <h1>Philosophische Denkschulen</h1>
   <p class="subtitle">Abhängigkeiten, Einflüsse und Brüche von der Antike bis zur Gegenwart</p>
+  <div id="progress-wrap">
+    <span id="progress-text">0 / 22 erkundet</span>
+    <div id="progress-bar-track"><div id="progress-bar-fill"></div></div>
+    <button id="progress-reset">Zurücksetzen</button>
+  </div>
 </header>
 
 <div id="legend">
@@ -295,6 +348,16 @@
 <div id="tooltip"></div>
 
 <script>
+// ═══════════════════════════════════════════════════
+// PROGRESS & FAVORITES (localStorage)
+// ═══════════════════════════════════════════════════
+const VISITED_KEY = 'philo-visited';
+const FAV_KEY     = 'philo-favorites';
+let visited   = new Set(JSON.parse(localStorage.getItem(VISITED_KEY) || '[]'));
+let favorites = new Set(JSON.parse(localStorage.getItem(FAV_KEY)     || '[]'));
+function saveVisited()   { localStorage.setItem(VISITED_KEY, JSON.stringify([...visited])); }
+function saveFavorites() { localStorage.setItem(FAV_KEY,     JSON.stringify([...favorites])); }
+
 // ═══════════════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════════════
@@ -639,6 +702,21 @@ nodeGs.append("text")
   .attr("text-anchor","middle")
   .text(n => n.label);
 
+// Visited checkmark (top-right corner)
+nodeGs.append("text")
+  .attr("class","node-visited-mark")
+  .attr("x", NODE_W - 6).attr("y", 12)
+  .attr("text-anchor","end")
+  .text("✓");
+
+function updateProgress() {
+  const total = nodes.filter(n => posMap[n.id]).length;
+  document.getElementById("progress-text").textContent = `${visited.size} / ${total} erkundet`;
+  document.getElementById("progress-bar-fill").style.width = `${(visited.size / total) * 100}%`;
+  nodeGs.classed("visited", d => visited.has(d.id));
+}
+updateProgress();
+
 // ── Interactions ──
 nodeGs
   .on("mouseenter", function(event, d) {
@@ -669,9 +747,17 @@ nodeGs
       return `<li class="conn-item">${arrow}<div><strong style="color:#d8d0c8">${other.label}</strong> <span style="color:#555;font-size:0.8em">(${other.era})</span><br>${e.label}</div></li>`;
     }).join("");
 
+    // Mark visited
+    visited.add(d.id);
+    saveVisited();
+    updateProgress();
+
     panelContent.innerHTML = `
       <div class="panel-era" style="color:${color}">${d.era}</div>
-      <h2 class="panel-title">${d.label}</h2>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:0.5rem">
+        <h2 class="panel-title">${d.label}</h2>
+        <button id="panel-fav-btn" title="Lesezeichen" class="${favorites.has(d.id) ? 'active' : ''}">★</button>
+      </div>
       <div class="panel-divider" style="color:${color}"></div>
 
       <div class="section-label">Kernthese</div>
@@ -695,10 +781,27 @@ nodeGs
     `;
     panel.classList.add("open");
     tooltip.style("opacity",0);
+
+    // Wire up favorite toggle after innerHTML is set
+    const favBtn = document.getElementById("panel-fav-btn");
+    favBtn.addEventListener("click", () => {
+      if (favorites.has(d.id)) favorites.delete(d.id);
+      else favorites.add(d.id);
+      saveFavorites();
+      favBtn.classList.toggle("active", favorites.has(d.id));
+    });
   });
 
 document.getElementById("panel-close").addEventListener("click", () => {
   panel.classList.remove("open");
+});
+
+document.getElementById("progress-reset").addEventListener("click", () => {
+  visited.clear();
+  favorites.clear();
+  saveVisited();
+  saveFavorites();
+  updateProgress();
 });
 
 // Click outside to close
