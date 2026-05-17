@@ -254,6 +254,91 @@
   .conn-arrow.criticizes  { background: #c46b5a25; color: #c46b5a; border: 1px solid #c46b5a60; }
   .conn-arrow.synthesizes { background: #7a8fc425; color: #7a8fc4; border: 1px solid #7a8fc460; }
 
+  /* ── Quiz ── */
+  #quiz-section { margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.25rem; }
+  #quiz-start-btn {
+    display: block; width: 100%;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.55rem 1rem;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  #quiz-start-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.25); }
+  .quiz-q {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #c8c0b4;
+    margin-bottom: 1rem;
+  }
+  .quiz-q-counter {
+    font-family: var(--font-ui);
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+  .quiz-options { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; }
+  .quiz-opt {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: #9a9088;
+    cursor: pointer;
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    padding: 0.55rem 0.9rem;
+    text-align: left;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .quiz-opt:hover:not(:disabled) { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.15); }
+  .quiz-opt.correct { border-color: #4aaa8060; background: #4aaa8015; color: #4aaa80; }
+  .quiz-opt.wrong   { border-color: #c46b5a60; background: #c46b5a15; color: #c46b5a; }
+  .quiz-opt:disabled { cursor: default; }
+  .quiz-feedback {
+    font-family: var(--font-display);
+    font-size: 0.88rem;
+    line-height: 1.6;
+    padding: 0.5rem 0.75rem;
+    border-radius: 2px;
+    margin-bottom: 0.75rem;
+  }
+  .quiz-feedback.correct { color: #4aaa80; background: #4aaa8010; border-left: 2px solid #4aaa8060; }
+  .quiz-feedback.wrong   { color: #c46b5a; background: #c46b5a10; border-left: 2px solid #c46b5a60; }
+  .quiz-next-btn {
+    background: none; border: 1px solid var(--border);
+    border-radius: 2px; color: var(--text); cursor: pointer;
+    font-family: var(--font-ui); font-size: 0.65rem;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 0.4rem 0.9rem; transition: background 0.15s;
+  }
+  .quiz-next-btn:hover { background: rgba(255,255,255,0.06); }
+  .quiz-score {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: #b8a882;
+    text-align: center;
+    padding: 1rem 0 0.5rem;
+  }
+  .quiz-score-sub {
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
   /* ── Lernpfade ── */
   #path-bar {
     display: flex;
@@ -448,7 +533,6 @@
   }
   #panel-fav-btn:hover { transform: scale(1.2); }
   #panel-fav-btn.active { color: #b8a882; }
-
   /* ── Tooltip ── */
   #tooltip {
     position: fixed;
@@ -1000,9 +1084,15 @@ function showNodePanel(d, transitionText = null) {
     ${incoming.length ? `
       <div class="section-label" style="margin-top:1.25rem">Eingehende Einflüsse</div>
       <ul class="connections-list">${connHtml(incoming,"in")}</ul>` : ""}
+
+    <div id="quiz-section">
+      <button id="quiz-start-btn">Quiz starten</button>
+    </div>
   `;
   panel.classList.add("open");
   tooltip.style("opacity", 0);
+
+  document.getElementById("quiz-start-btn").addEventListener("click", () => renderQuiz(d));
 
   // Wire up favorite toggle after innerHTML is set
   const favBtn = document.getElementById("panel-fav-btn");
@@ -1056,6 +1146,115 @@ document.getElementById("graph-wrap").addEventListener("click", e => {
   }
 });
 
+// ── Quiz Engine ──
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function pick(arr, n)  { return shuffle(arr).slice(0, n); }
+
+function generateQuestions(node) {
+  const others = nodes.filter(n => n.id !== node.id && posMap[n.id]);
+  const qs = [];
+
+  // Q1: Kernthese zuordnen
+  const snippet = n => n.core.split('.')[0] + '.';
+  qs.push({
+    q: `Welche Aussage beschreibt die Kernthese des <em>${node.label}</em>?`,
+    opts: shuffle([
+      { text: snippet(node), correct: true },
+      ...pick(others, 3).map(n => ({ text: snippet(n), correct: false }))
+    ]),
+    exp: snippet(node)
+  });
+
+  // Q2: Vertreter zuordnen
+  const myRep = shuffle(node.reps)[0];
+  qs.push({
+    q: `Welcher Denker gehört zum <em>${node.label}</em>?`,
+    opts: shuffle([
+      { text: myRep, correct: true },
+      ...pick(others, 3).map(n => ({ text: shuffle(n.reps)[0], correct: false }))
+    ]),
+    exp: `${myRep} ist ein bedeutender Vertreter des ${node.label}.`
+  });
+
+  // Q3: Verbindung erkennen
+  const allEdges = [
+    ...edges.filter(e => e.s === node.id && posMap[e.t]).map(e => ({ ...e, dir: "out" })),
+    ...edges.filter(e => e.t === node.id && posMap[e.s]).map(e => ({ ...e, dir: "in"  })),
+  ];
+  if (allEdges.length) {
+    const e = shuffle(allEdges)[0];
+    const isOut = e.dir === "out";
+    const other = nodes.find(n => n.id === (isOut ? e.t : e.s));
+    const verb = { influences: isOut ? "beeinflusst" : "wird beeinflusst von", continues: isOut ? "setzt fort" : "wird fortgesetzt von", criticizes: isOut ? "kritisiert" : "wird kritisiert von", synthesizes: isOut ? "synthetisiert" : "wird synthetisiert durch" }[e.type];
+    const wrongs = pick(others.filter(n => n.id !== other.id), 3);
+    qs.push({
+      q: `Welche Schule ${verb} der <em>${node.label}</em>?`,
+      opts: shuffle([
+        { text: other.label, correct: true },
+        ...wrongs.map(n => ({ text: n.label, correct: false }))
+      ]),
+      exp: e.label
+    });
+  }
+  return qs;
+}
+
+function renderQuiz(node) {
+  const qs = generateQuestions(node);
+  const section = document.getElementById("quiz-section");
+  let qi = 0, score = 0;
+
+  function showQ() {
+    if (qi >= qs.length) {
+      const pct = Math.round((score / qs.length) * 100);
+      const msg = score === qs.length ? "Perfekt!" : score >= Math.ceil(qs.length / 2) ? "Gut gemacht!" : "Nochmal lesen!";
+      section.innerHTML = `
+        <div class="quiz-score">${score} / ${qs.length} richtig</div>
+        <div class="quiz-score-sub">${pct}% · ${msg}</div>
+        <button class="quiz-next-btn" id="quiz-retry">Nochmal</button>
+      `;
+      document.getElementById("quiz-retry").addEventListener("click", () => renderQuiz(node));
+      return;
+    }
+    const q = qs[qi];
+    section.innerHTML = `
+      <div class="quiz-q-counter">Frage ${qi + 1} / ${qs.length}</div>
+      <div class="quiz-q">${q.q}</div>
+      <div class="quiz-options">
+        ${q.opts.map((o, i) => `<button class="quiz-opt" data-i="${i}" data-ok="${o.correct}">${o.text}</button>`).join("")}
+      </div>
+    `;
+    section.querySelectorAll(".quiz-opt").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const correct = btn.dataset.ok === "true";
+        if (correct) score++;
+        section.querySelectorAll(".quiz-opt").forEach(b => {
+          b.disabled = true;
+          if (b.dataset.ok === "true") b.classList.add("correct");
+          else if (b === btn) b.classList.add("wrong");
+        });
+        const fb = document.createElement("div");
+        fb.className = "quiz-feedback " + (correct ? "correct" : "wrong");
+        fb.textContent = (correct ? "✓ Richtig – " : "✗ Falsch – ") + q.exp;
+        const nextBtn = document.createElement("button");
+        nextBtn.className = "quiz-next-btn";
+        nextBtn.textContent = qi < qs.length - 1 ? "Nächste Frage →" : "Ergebnis";
+        nextBtn.addEventListener("click", () => { qi++; showQ(); });
+        section.appendChild(fb);
+        section.appendChild(nextBtn);
+      });
+    });
+  }
+  showQ();
+}
+
 // ── Lernpfade ──
 let activePath = null;
 let activeStep = 0;
@@ -1066,7 +1265,6 @@ const pathCounter = document.getElementById("path-counter");
 const pathPrevBtn = document.getElementById("path-prev-btn");
 const pathNextBtn = document.getElementById("path-next-btn");
 
-// Render path buttons
 PATHS.forEach(p => {
   const btn = document.createElement("button");
   btn.className = "path-btn";
