@@ -75,6 +75,14 @@ Ordnet Knoten in horizontalen Swim-Lanes nach Epoche an. Gibt `posMap` (id → {
 3. Kanten in `edges[]` eintragen (`s`/`t` = ids, `type` = einer der vier Typen)
 4. Zeitspanne in `NODE_YEARS` und Philosophen-Dots in `PHILOSOPHER_DOTS[]` ergänzen
 
+## Deployment (GitHub Pages)
+
+- **Workflow**: `.github/workflows/deploy.yml` – deployt bei jedem Push auf `main` (auch manuell via `workflow_dispatch`)
+- **Artifact**: Nur `index.html` und `start.html` werden in `_site/` kopiert und als Pages-Artifact hochgeladen — kein Repo-Overhead (CLAUDE.md, .github/ etc.)
+- **`cancel-in-progress: true`**: Veraltete Deployments werden abgebrochen, sobald ein neuerer Push kommt
+- **`index.html`**: Redirect-Seite von `/philosophen/` → `start.html` via `location.replace()` (JS) mit `<noscript>`-Fallback; kein `<meta http-equiv="refresh">`
+- **Pages-Quelle** muss in Repo-Settings → Pages auf **„GitHub Actions"** gesetzt sein
+
 ## Branch-Konvention
 
 Feature-Branches nach Schema `claude/<feature-name>` – je Issue ein Branch und PR.
