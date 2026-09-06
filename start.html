@@ -723,6 +723,11 @@ const ERA_COLORS = {
 
 const nodes = [
   // ── Antike ──
+  { id: "vorsokratik", label: "Vorsokratik", era: "Antike",
+    core: "Die frühesten griechischen Denker suchen erstmals rational, ohne Rückgriff auf Mythen, nach dem Urgrund (Arché) der Welt und nach dem Wesen des Seins und des Werdens.",
+    detail: "Thales von Milet gilt traditionell als erster Philosoph: Er sucht die Arché im Wasser. Pythagoras lehrt 'Alles ist Zahl' und die Seelenwanderung. Heraklit sieht im ständigen Wandel ('Panta rhei') und im Feuer das Urprinzip, während Parmenides mit seiner Eleatischen Schule das unveränderliche, rational erschlossene Sein gegen den Wandel setzt. Diese Debatte zwischen Werden und Sein prägt die gesamte spätere griechische Philosophie bis zu Platon und Aristoteles.",
+    reps: ["Thales von Milet (ca. 624–546 v. Chr.)", "Pythagoras von Samos (ca. 570–495 v. Chr.)", "Heraklit von Ephesos (ca. 520–460 v. Chr.)", "Parmenides von Elea (ca. 515–445 v. Chr.)"] },
+
   { id: "platonismus", label: "Platonismus", era: "Antike",
     core: "Die wahre Realität besteht aus ewigen, unveränderlichen Ideen (Formen). Die Sinneswelt ist nur ein schwacher Abglanz dieser idealen Welt. Erkenntnis bedeutet, sich von Sinnesdaten zu lösen und durch rationale Schau zur Ideenwelt aufzusteigen.",
     detail: "Platon entwickelte seine Ideenlehre im Kontext der Frage: Was macht einzelne schöne Dinge schön? Seine Antwort: die Teilhabe an der Idee des Schönen selbst. Das Höhlengleichnis illustriert den philosophischen Aufstieg vom Schatten zur Sonne. Der Platonismus prägte das christliche Denken tiefgreifend, insbesondere durch die Gleichsetzung von Gott mit dem höchsten Guten.",
@@ -741,7 +746,7 @@ const nodes = [
   { id: "epikureismus", label: "Epikureismus", era: "Antike",
     core: "Das höchste Gut ist Glück als Seelenfrieden (ataraxia) und Schmerzlosigkeit (aponia). Nicht Genusssucht, sondern die Befreiung von Angst – besonders Todesangst und Götterfurcht – führt zur Glückseligkeit.",
     detail: "Epikur lehrte eine atomistische Physik (nach Demokrit), die keinen Raum für göttliches Eingreifen oder ein Leben nach dem Tod ließ – damit wollte er Todesangst rational auflösen. Das Ideal war ein Leben im kleinen Freundeskreis ('Garten'). Der Epikureismus blieb im Mittelalter weitgehend verdrängt und erlebte in der Neuzeit durch Gassendi und die Aufklärung eine Wiedergeburt.",
-    reps: ["Epikur (341–270 v. Chr.)", "Lukrez (99–55 v. Chr.)", "Philodem von Gadara (110–40 v. Chr.)"] },
+    reps: ["Epikur (341–270 v. Chr.)", "Demokrit von Abdera (ca. 460–370 v. Chr.)", "Lukrez (99–55 v. Chr.)", "Philodem von Gadara (110–40 v. Chr.)"] },
 
   { id: "skeptizismus", label: "Skeptizismus", era: "Antike",
     core: "Da kein sicheres Wissen möglich ist, soll man das Urteil suspendieren (epoché). Aus dieser Urteilsenthaltung folgt paradoxerweise Seelenfrieden – denn wer nicht urteilt, wird nicht enttäuscht.",
@@ -841,6 +846,8 @@ const nodes = [
 // Connections: source → target, type, label
 const edges = [
   // Antike interne
+  { s: "vorsokratik",    t: "platonismus",    type: "influences",  label: "Parmenides' Seinslehre und pythagoreische Zahlenmystik prägen Platons Ideenlehre" },
+  { s: "vorsokratik",    t: "epikureismus",   type: "influences",  label: "Demokrits Atomismus liefert die physikalische Grundlage für Epikurs Naturphilosophie" },
   { s: "aristotelismus", t: "platonismus",    type: "criticizes",  label: "Kritisiert die getrennte Ideenwelt; Form ist in den Dingen selbst" },
   { s: "stoizismus",     t: "platonismus",    type: "influences",  label: "Übernimmt Logos-Konzept und Tugendideal" },
   { s: "epikureismus",   t: "aristotelismus", type: "criticizes",  label: "Lehnt Teleologie und politisches Leben ab" },
@@ -1213,6 +1220,7 @@ document.getElementById("graph-wrap").addEventListener("click", e => {
 // ZEITLEISTEN-ANSICHT
 // ═══════════════════════════════════════════════════
 const NODE_YEARS = {
+  vorsokratik:        { start: -624, end: -445 },
   platonismus:        { start: -428, end: 485  },
   aristotelismus:     { start: -384, end: 200  },
   stoizismus:         { start: -334, end: 180  },
@@ -1238,6 +1246,10 @@ const NODE_YEARS = {
 };
 
 const PHILOSOPHER_DOTS = [
+  { nodeId: "vorsokratik",        name: "Thales",       year: -624 },
+  { nodeId: "vorsokratik",        name: "Pythagoras",   year: -570 },
+  { nodeId: "vorsokratik",        name: "Heraklit",     year: -520 },
+  { nodeId: "vorsokratik",        name: "Parmenides",   year: -515 },
   { nodeId: "platonismus",        name: "Platon",       year: -428 },
   { nodeId: "platonismus",        name: "Plotin",       year: 205  },
   { nodeId: "aristotelismus",     name: "Aristoteles",  year: -384 },
