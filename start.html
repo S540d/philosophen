@@ -421,6 +421,39 @@
   .path-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
   .path-btn.active { color: #b8a882; border-color: #b8a882; }
 
+  /* ── Epochen-Filter ── */
+  #era-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 2rem 0.25rem;
+  }
+  #era-filter-bar .era-filter-label {
+    font-family: var(--font-ui);
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-right: 0.25rem;
+  }
+  .era-filter-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.7rem;
+    transition: border-color 0.2s, color 0.2s, opacity 0.2s;
+    opacity: 0.55;
+  }
+  .era-filter-btn.active { opacity: 1; }
+  .node-group.era-hidden, .edge-path.era-hidden { display: none; }
+
   #path-stepper {
     display: none;
     align-items: center;
@@ -732,6 +765,8 @@
   <div class="legend-item"><div class="legend-line synthesizes"></div> Synthetisiert</div>
 </div>
 
+<div id="era-filter-bar"><span class="era-filter-label">Epochen:</span></div>
+
 <div id="path-bar"></div>
 <div id="path-stepper">
   <button class="path-nav-btn" id="path-prev-btn">← Zurück</button>
@@ -788,6 +823,16 @@ const PATHS = [
       { id: "existentialismus",  transition: "Sartre und de Beauvoir wenden Heideggers Daseinsanalyse atheistisch: Existenz geht der Essenz voraus." },
       { id: "analytisch",        transition: "Parallel dazu: Wittgenstein zeigt, dass viele philosophische Probleme durch Sprachverwirrung entstehen." },
       { id: "poststrukturalismus",transition: "Foucault und Derrida dekonstruieren das stabile Subjekt des Existentialismus." },
+    ]},
+  { id: "scholastik_gegenwart", title: "Von der Scholastik zur Gegenwart",
+    desc: "Wie sich Vernunft und Erfahrung seit dem Mittelalter immer wieder neu gegen Autorität und Systemdenken behaupten",
+    steps: [
+      { id: "scholastik",     transition: null },
+      { id: "nominalismus",   transition: "Der Nominalismus zerstört den scholastischen Realismus: Nur Einzeldinge existieren wirklich, Glaube und Vernunft werden getrennt." },
+      { id: "empirismus",     transition: "Ockham bereitet den Empirismus vor: Nur Einzeldinge und Erfahrung zählen als Erkenntnisquelle." },
+      { id: "positivismus",   transition: "Der Positivismus radikalisiert die empiristische Grundthese: Nur Erfahrung ist Wissensquelle." },
+      { id: "analytisch",     transition: "Der Logische Positivismus des Wiener Kreises ist direkte Fortführung: Metaphysik gilt als sinnlos." },
+      { id: "poststrukturalismus", transition: "Sprachphilosophie beeinflusst Derrida, doch der Poststrukturalismus kritisiert den Präzisionsanspruch der analytischen Philosophie." },
     ]},
 ];
 
@@ -1181,6 +1226,35 @@ function updateProgress() {
   nodeGs.classed("visited", d => visited.has(d.id));
 }
 updateProgress();
+
+// ── Epochen-Filter ──
+const hiddenEras = new Set();
+const eraFilterBar = document.getElementById("era-filter-bar");
+ERAS.forEach(era => {
+  const btn = document.createElement("button");
+  btn.className = "era-filter-btn active";
+  btn.type = "button";
+  btn.textContent = era;
+  btn.style.color = ERA_COLORS[era];
+  btn.style.borderColor = ERA_COLORS[era] + "80";
+  btn.setAttribute("aria-pressed", "true");
+  btn.addEventListener("click", () => {
+    if (hiddenEras.has(era)) hiddenEras.delete(era);
+    else hiddenEras.add(era);
+    btn.classList.toggle("active", !hiddenEras.has(era));
+    btn.setAttribute("aria-pressed", String(!hiddenEras.has(era)));
+    applyEraFilter();
+  });
+  eraFilterBar.appendChild(btn);
+});
+function applyEraFilter() {
+  nodeGs.classed("era-hidden", d => hiddenEras.has(d.era));
+  edgePaths.classed("era-hidden", e => {
+    const sNode = nodes.find(n => n.id === e.s);
+    const tNode = nodes.find(n => n.id === e.t);
+    return (sNode && hiddenEras.has(sNode.era)) || (tNode && hiddenEras.has(tNode.era));
+  });
+}
 
 // ── Interactions ──
 nodeGs
