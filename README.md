@@ -20,4 +20,4 @@ Ein interaktiver Lern-Graph der westlichen Philosophiegeschichte – für alle, 
 
 ## Lizenz
 
-Siehe [LICENSE](LICENSE).
+PolyForm Noncommercial 1.0.0 (nicht-kommerzielle Nutzung) — siehe [LICENSE](LICENSE).
